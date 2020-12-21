@@ -70,6 +70,7 @@ module.exports = async function (deployer) {
             console.log("Proxy's address: " + proxy.address);
             await proxy.addPool(p1Address, [daiAddress, busdAddress, usdtAddress], 6);
             await proxy.addPool(p2Address, [btcbAddress, renBtcAddress, anyBtcAddress], 6);
+            await bst.setMinter(pool.address);
         });
     } else {
 
