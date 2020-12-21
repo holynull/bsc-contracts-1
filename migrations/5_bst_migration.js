@@ -1,4 +1,7 @@
-const SmartSwapPool03 = artifacts.require("SmartSwapPool03");
+const BStablePool = artifacts.require("BStablePool");
+const StableCoin = artifacts.require("StableCoin");
+const BStableProxy = artifacts.require("BStableProxy");
+const BStableToken = artifacts.require("BStableToken");
 
 module.exports = async function (deployer) {
     if (deployer.network.indexOf('skipMigrations') > -1) { // skip migration
@@ -8,40 +11,66 @@ module.exports = async function (deployer) {
         return;
     }
     if (deployer.network_id == 4) { // Rinkeby
-        // let compoundOracleAddress = "0x332b6e69f21acdba5fb3e8dac56ff81878527e06";
-        // let stringComparatorLibrary = await deployer.deploy(stringComparator);
-        // let oracleContract = await deployer.deploy(ploutozOracle, compoundOracleAddress);
-        // let wethContract = await deployer.deploy(weth);
-        // console.log('WETH contract address: ' + wethContract.address);
-        // let exchangeContract = await deployer.deploy(exchange, uniswapFactoryAddress, uniswapRouter01Address, uniswapRouter02Address, address0);
-        // deployer.link(stringComparator, factory);
-        // let factoryContract = await deployer.deploy(factory, oracleContract.address, exchangeContract.address);
-        // let exchangeContract=await deployer.
     } else if (deployer.network_id == 1) { // main net
-    } else if (deployer.network_id == 5777) {
     } else if (deployer.network_id == 42) { // kovan
     } else if (deployer.network_id == 56) { // bsc main net
-        let qusdAddress = '0xb8c540d00dd0bf76ea12e4b4b95efc90804f924e';
-        let daiAddress = '0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3';
-        let vaiAddress = '0xa8F1c29D4162EA545bcF3A85010F6E1BABF8B9b2';
-        let stableCoins = [qusdAddress, daiAddress, vaiAddress];
-        let A = 100;
-        let fee = 30000000;// 1e-10, 0.003, 0.3%
-        // let adminFee = 0;
-        let adminFee = 6666666666; // 1e-10, 0.666667, 66.67% 
-        let smartSwapPool03Contract = await deployer.deploy(SmartSwapPool03, stableCoins, A, fee, adminFee);
-    } else if (deployer.network_id == 97) { //bsc test net
-        // dai busd usdt
-        let qusdAddress = '0x43B8ad974F49553dd4f5f3cB534A368fbC4761DB';
-        let daiAddress = '0xec5dcb5dbf4b114c9d0f65bccab49ec54f6a0867';
-        let vaiAddress = '0x0a87c5bdec19d74bee9938f928bfa153bc8532b2';
-        let stableCoins = [qusdAddress, daiAddress, vaiAddress];
-        let A = 100;
-        let fee = 30000000;// 1e-10, 0.003, 0.3%
-        // let adminFee = 0;
-        let adminFee = 6666666666; // 1e-10, 0.666667, 66.67% 
-        let smartSwapPool03Contract = await deployer.deploy(SmartSwapPool03, stableCoins, A, fee, adminFee);
-        // console.log(stableSwapPoolContract.address);
+    } else if (deployer.network_id == 97 || deployer.network_id == 5777) { //bsc test net
+        let daiAddress;
+        let busdAddress;
+        let usdtAddress;
+        let btcbAddress;
+        let renBtcAddress;
+        let anyBtcAddress;
+        let p1Address;
+        let p2Address;
+        deployer.then(() => {
+            let totalSupply = web3.utils.toWei('100000000', 'ether');
+            return StableCoin.new("DAI for bStable test", "bstDAI", totalSupply);
+        }).then(dai => {
+            daiAddress = dai.address;
+            let totalSupply = web3.utils.toWei('100000000', 'ether');
+            return StableCoin.new("BUSD for bStable test", "bstBUSD", totalSupply);
+        }).then(busd => {
+            busdAddress = busd.address;
+            let totalSupply = web3.utils.toWei('100000000', 'ether');
+            return StableCoin.new("USDT for bStable test", "bstUSDT", totalSupply);
+        }).then(usdt => {
+            usdtAddress = usdt.address;
+            let stableCoins = [daiAddress, busdAddress, usdtAddress];
+            let A = 100;
+            let fee = 30000000;// 1e-10, 0.003, 0.3%
+            // let adminFee = 0;
+            let adminFee = 6666666666; // 1e-10, 0.666667, 66.67% 
+            return BStablePool.new("bstable Pool (DAI/BUSD/USDT) for test", "BSLP-01", stableCoins, A, fee, adminFee);
+        }).then(pool => {
+            let totalSupply = web3.utils.toWei('100000000', 'ether');
+            p1Address = pool.address;
+            return StableCoin.new("BTCB for bStable test", "BTCB", totalSupply);
+        }).then(btcb => {
+            let totalSupply = web3.utils.toWei('100000000', 'ether');
+            btcbAddress = btcb.address;
+            return StableCoin.new("renBTC for bStable test", "renBTC", totalSupply);
+        }).then(renBtc => {
+            let totalSupply = web3.utils.toWei('100000000', 'ether');
+            renBtcAddress = renBtc.address;
+            return StableCoin.new("anyBTC for bStable test", "anyBTC", totalSupply)
+        }).then(anyBtc => {
+            anyBtcAddress = anyBtc.address;
+            let stableCoins = [btcbAddress, renBtcAddress, anyBtcAddress];
+            let A = 100;
+            let fee = 30000000;// 1e-10, 0.003, 0.3%
+            // let adminFee = 0;
+            let adminFee = 6666666666; // 1e-10, 0.666667, 66.67% 
+            return BStablePool.new("bstable Pool (BTCB/renBTC/anyBTC) for test", "BSLP-02", stableCoins, A, fee, adminFee);
+        }).then(pool => {
+            p2Address = pool.address;
+            return BStableToken.new("bStable DAO Token", "BST");
+        }).then(async bst => {
+            let proxy = await BStableProxy.new("bStable Pools Proxy for test", "BSPP-V1", bst.address);
+            console.log("Proxy's address: " + proxy.address);
+            await proxy.addPool(p1Address, [daiAddress, busdAddress, usdtAddress], 6);
+            await proxy.addPool(p2Address, [btcbAddress, renBtcAddress, anyBtcAddress], 6);
+        });
     } else {
 
     }

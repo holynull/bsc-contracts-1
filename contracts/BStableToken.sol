@@ -5,13 +5,13 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 // BStable DAO Token
 // All data's decimal is 18.
-contract BStableToken is BEP20("bStable DAO Token", "BST"), Ownable {
+contract BStableToken is BEP20, Ownable {
     using SafeMath for uint256;
     address minter;
 
     uint256 YEAR = uint256(86400).mul(365);
-    uint256 INITIAL_SUPPLY = uint256(40_000_000_000).mul(10**18);
-    uint256 INITIAL_RATE = uint256(1_909_243_017).mul(10**18).div(YEAR);
+    uint256 INITIAL_SUPPLY = uint256(40_000_000).mul(10**18);
+    uint256 INITIAL_RATE = uint256(19_092_430).mul(10**18).div(YEAR);
     uint256 RATE_REDUCTION_TIME = YEAR;
     uint256 RATE_REDUCTION_COEFFICIENT = 1189207115002721024;
     uint256 INFLATION_DELAY = 86400;
@@ -26,7 +26,10 @@ contract BStableToken is BEP20("bStable DAO Token", "BST"), Ownable {
 
     event SetMinter(address minter);
 
-    constructor() public {
+    constructor(string memory _name, string memory _symbol)
+        public
+        BEP20(_name, _symbol)
+    {
         transferOwnership(msg.sender);
         _mint(msg.sender, INITIAL_SUPPLY);
         start_epoch_time = block.timestamp.add(INFLATION_DELAY).sub(

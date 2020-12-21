@@ -59,10 +59,11 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(address _tokenAddress)
-        public
-        BEP20("bStable Pools Proxy", "BSPP-V1")
-    {
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        address _tokenAddress
+    ) public BEP20(_name, _symbol) {
         transferOwnership(msg.sender);
         tokenAddress = _tokenAddress;
     }
@@ -198,9 +199,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             amounts,
             min_mint_amount
         );
-        uint256 lpBalance = IBStablePool(pools[_pid].poolAddress).balanceOf(
-            address(this)
-        );
+        uint256 lpBalance =
+            IBStablePool(pools[_pid].poolAddress).balanceOf(address(this));
         TransferHelper.safeTransfer(
             pools[_pid].poolAddress,
             msg.sender,
@@ -265,14 +265,14 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         uint256 dy = IBEP20(pools[_pid].coins[j]).balanceOf(address(this));
         TransferHelper.safeTransfer(pools[_pid].coins[j], msg.sender, dy);
         uint256 accPoints = dy.div(dx).mul(dy);
-        uint256 tokenAmt = IBEP20(tokenAddress).balanceOf(address(this)).mul(
-            pools[_pid].swapRewardRate.div(10**18)
-        );
-        uint256 rewardAmt = pools[_pid]
-            .totalVolReward
-            .add(tokenAmt)
-            .mul(accPoints)
-            .div(accPoints.add(pools[_pid].totalVolAccPoints));
+        uint256 tokenAmt =
+            IBEP20(tokenAddress).balanceOf(address(this)).mul(
+                pools[_pid].swapRewardRate.div(10**18)
+            );
+        uint256 rewardAmt =
+            pools[_pid].totalVolReward.add(tokenAmt).mul(accPoints).div(
+                accPoints.add(pools[_pid].totalVolAccPoints)
+            );
         if (rewardAmt > tokenAmt) {
             TransferHelper.safeTransfer(tokenAddress, msg.sender, tokenAmt);
             pools[_pid].totalVolReward = pools[_pid].totalVolReward.add(
@@ -308,9 +308,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             _amount,
             min_amounts
         );
-        uint256 lpBalance = IBStablePool(pools[_pid].poolAddress).balanceOf(
-            address(this)
-        );
+        uint256 lpBalance =
+            IBStablePool(pools[_pid].poolAddress).balanceOf(address(this));
         if (lpBalance > 0) {
             TransferHelper.safeTransfer(
                 pools[_pid].poolAddress,
@@ -319,9 +318,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             );
         }
         for (uint256 i = 0; i < pools[_pid].coins.length; i++) {
-            uint256 balance = IBEP20(pools[_pid].coins[i]).balanceOf(
-                address(this)
-            );
+            uint256 balance =
+                IBEP20(pools[_pid].coins[i]).balanceOf(address(this));
             TransferHelper.safeTransfer(
                 pools[_pid].coins[i],
                 msg.sender,
@@ -349,9 +347,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             amounts,
             max_burn_amount
         );
-        uint256 lpBalance = IBStablePool(pools[_pid].poolAddress).balanceOf(
-            address(this)
-        );
+        uint256 lpBalance =
+            IBStablePool(pools[_pid].poolAddress).balanceOf(address(this));
         if (lpBalance > 0) {
             TransferHelper.safeTransfer(
                 pools[_pid].poolAddress,
@@ -360,9 +357,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             );
         }
         for (uint256 i = 0; i < pools[_pid].coins.length; i++) {
-            uint256 balance = IBEP20(pools[_pid].coins[i]).balanceOf(
-                address(this)
-            );
+            uint256 balance =
+                IBEP20(pools[_pid].coins[i]).balanceOf(address(this));
             TransferHelper.safeTransfer(
                 pools[_pid].coins[i],
                 msg.sender,
@@ -407,9 +403,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             i,
             min_amount
         );
-        uint256 lpBalance = IBStablePool(pools[_pid].poolAddress).balanceOf(
-            address(this)
-        );
+        uint256 lpBalance =
+            IBStablePool(pools[_pid].poolAddress).balanceOf(address(this));
         if (lpBalance > 0) {
             TransferHelper.safeTransfer(
                 pools[_pid].poolAddress,
@@ -417,9 +412,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
                 lpBalance
             );
         }
-        uint256 iBalance = IBEP20(pools[_pid].coins[i]).balanceOf(
-            address(this)
-        );
+        uint256 iBalance =
+            IBEP20(pools[_pid].coins[i]).balanceOf(address(this));
         TransferHelper.safeTransfer(pools[_pid].coins[i], msg.sender, iBalance);
     }
 
@@ -443,14 +437,16 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         uint256 accSushiPerShare = pool.accTokenPerShare;
         uint256 lpSupply = IBEP20(pool.poolAddress).balanceOf(address(this));
         if (lpSupply != 0) {
-            uint256 releaseAmt = IBStableToken(tokenAddress)
-                .availableSupply()
-                .sub(IBStableToken(tokenAddress).totalSupply());
-            uint256 reward = releaseAmt
-                .mul(pool.shareRewardRate)
-                .div(10**18)
-                .mul(pool.allocPoint)
-                .div(totalAllocPoint);
+            uint256 releaseAmt =
+                IBStableToken(tokenAddress).availableSupply().sub(
+                    IBStableToken(tokenAddress).totalSupply()
+                );
+            uint256 reward =
+                releaseAmt
+                    .mul(pool.shareRewardRate)
+                    .div(10**18)
+                    .mul(pool.allocPoint)
+                    .div(totalAllocPoint);
             accSushiPerShare = accSushiPerShare.add(
                 reward.mul(10**18).div(lpSupply)
             );
@@ -476,15 +472,17 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             pool.lastUpdateTime = block.number;
             return;
         }
-        uint256 releaseAmt = IBStableToken(tokenAddress).availableSupply().sub(
-            IBStableToken(tokenAddress).totalSupply()
-        );
+        uint256 releaseAmt =
+            IBStableToken(tokenAddress).availableSupply().sub(
+                IBStableToken(tokenAddress).totalSupply()
+            );
         uint256 mintAmt = releaseAmt.mul(pool.allocPoint).div(totalAllocPoint);
-        uint256 reward = releaseAmt
-            .mul(pool.shareRewardRate)
-            .div(10**18)
-            .mul(pool.allocPoint)
-            .div(totalAllocPoint);
+        uint256 reward =
+            releaseAmt
+                .mul(pool.shareRewardRate)
+                .div(10**18)
+                .mul(pool.allocPoint)
+                .div(totalAllocPoint);
         IBStableToken(tokenAddress).mint(address(this), mintAmt);
         pool.accTokenPerShare = pool.accTokenPerShare.add(
             reward.mul(10**18).div(lpSupply)
@@ -498,15 +496,13 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         poolUsers[_pid].push(msg.sender);
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending = user
-                .amount
-                .mul(pool.accTokenPerShare)
-                .div(10**18)
-                .sub(user.rewardDebt);
-            if (pending > 0) {
-                uint256 tokenBal = IBEP20(tokenAddress).balanceOf(
-                    address(this)
+            uint256 pending =
+                user.amount.mul(pool.accTokenPerShare).div(10**18).sub(
+                    user.rewardDebt
                 );
+            if (pending > 0) {
+                uint256 tokenBal =
+                    IBEP20(tokenAddress).balanceOf(address(this));
                 if (tokenBal >= pending) {
                     TransferHelper.safeTransfer(
                         tokenAddress,
@@ -540,11 +536,10 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user
-            .amount
-            .mul(pool.accTokenPerShare)
-            .div(10**18)
-            .sub(user.rewardDebt);
+        uint256 pending =
+            user.amount.mul(pool.accTokenPerShare).div(10**18).sub(
+                user.rewardDebt
+            );
         if (pending > 0) {
             uint256 tokenBal = IBEP20(tokenAddress).balanceOf(address(this));
             if (tokenBal >= pending) {
@@ -587,5 +582,53 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
 
     function closeMigration() external onlyOwner {
         _openMigration = false;
+    }
+
+    function addPool(
+        address _poolAddress,
+        address[] calldata _coins,
+        uint256 _allocPoint
+    ) external onlyOwner {
+        totalAllocPoint = totalAllocPoint.add(_allocPoint);
+        pools.push(
+            PoolInfo({
+                poolAddress: _poolAddress,
+                coins: _coins,
+                allocPoint: _allocPoint,
+                accTokenPerShare: 0,
+                shareRewardRate: 500_000_000_000_000_000,
+                swapRewardRate: 500_000_000_000_000_000,
+                totalVolAccPoints: 0,
+                totalVolReward: 0,
+                lastUpdateTime: block.timestamp
+            })
+        );
+    }
+
+    function setPoolRewardRate(
+        uint256 _pid,
+        uint256 shareRate,
+        uint256 swapRate
+    ) external {
+        require(
+            shareRate.add(swapRate) <= 1_000_000_000_000_000_000,
+            "sum rate lower then 100%"
+        );
+        pools[_pid].shareRewardRate = shareRate;
+        pools[_pid].swapRewardRate = swapRate;
+    }
+
+    function setPoolCoins(uint256 _pid, address[] calldata _coins) external {
+        pools[_pid].coins = _coins;
+    }
+
+    function setPoolAllocPoint(uint256 _pid, uint256 _allocPoint)
+        external
+        onlyOwner
+    {
+        totalAllocPoint = totalAllocPoint.sub(pools[_pid].allocPoint).add(
+            _allocPoint
+        );
+        pools[_pid].allocPoint = _allocPoint;
     }
 }
