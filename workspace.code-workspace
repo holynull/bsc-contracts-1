@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../ploutoz/code/curve-dao-contracts"
+		}
+	],
+    "settings": {}
+}

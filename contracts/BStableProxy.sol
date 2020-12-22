@@ -249,7 +249,7 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             pools[_pid].poolAddress != address(0),
             "address(0) can't be a pool"
         );
-        updatePool(_pid);
+        updatePoolForExchange(_pid);
         TransferHelper.safeTransferFrom(
             pools[_pid].coins[i],
             msg.sender,
@@ -263,8 +263,9 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         );
         IBStablePool(pools[_pid].poolAddress).exchange(i, j, dx, min_dy);
         uint256 dy = IBEP20(pools[_pid].coins[j]).balanceOf(address(this));
-        TransferHelper.safeTransfer(pools[_pid].coins[j], msg.sender, dy);
-        uint256 accPoints = dy.div(dx).mul(dy);
+        require(dy > 0, "no coin out");
+        uint256 accPoints = dy.mul(dy).div(dx);
+        require(accPoints > 0, "accumulate points is 0");
         uint256 tokenAmt =
             IBEP20(tokenAddress).balanceOf(address(this)).mul(
                 pools[_pid].swapRewardRate.div(10**18)
@@ -287,6 +288,7 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         pools[_pid].totalVolAccPoints = pools[_pid].totalVolAccPoints.add(
             accPoints
         );
+        TransferHelper.safeTransfer(pools[_pid].coins[j], msg.sender, dy);
     }
 
     function remove_liquidity(
@@ -487,6 +489,20 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         pool.accTokenPerShare = pool.accTokenPerShare.add(
             reward.mul(10**18).div(lpSupply)
         );
+        pool.lastUpdateTime = block.number;
+    }
+
+    function updatePoolForExchange(uint256 _pid) public noOpenMigration {
+        PoolInfo storage pool = pools[_pid];
+        if (block.number <= pool.lastUpdateTime) {
+            return;
+        }
+        uint256 releaseAmt =
+            IBStableToken(tokenAddress).availableSupply().sub(
+                IBStableToken(tokenAddress).totalSupply()
+            );
+        uint256 mintAmt = releaseAmt.mul(pool.allocPoint).div(totalAllocPoint);
+        IBStableToken(tokenAddress).mint(address(this), mintAmt);
         pool.lastUpdateTime = block.number;
     }
 

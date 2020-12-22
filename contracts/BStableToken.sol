@@ -40,6 +40,18 @@ contract BStableToken is BEP20, Ownable {
         start_epoch_supply = INITIAL_SUPPLY;
     }
 
+    function getRate() public view returns (uint256 _rate) {
+        _rate = rate;
+    }
+
+    function startEpochSupply() public view returns (uint256 _supply) {
+        _supply = start_epoch_supply;
+    }
+
+    function startEpochTime() public view returns (uint256 _time) {
+        _time = start_epoch_time;
+    }
+
     function _updateMiningParameters() internal {
         uint256 _rate = rate;
         uint256 _start_epoch_supply = start_epoch_supply;
@@ -93,9 +105,9 @@ contract BStableToken is BEP20, Ownable {
     }
 
     function _availableSupply() internal view returns (uint256 result) {
-        result = start_epoch_supply
-            .add(block.timestamp.sub(start_epoch_time))
-            .mul(rate);
+        result = start_epoch_supply.add(
+            block.timestamp.sub(start_epoch_time).mul(rate)
+        );
     }
 
     function availableSupply() external view returns (uint256 result) {
