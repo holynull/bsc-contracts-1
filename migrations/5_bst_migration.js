@@ -69,7 +69,7 @@ module.exports = async function (deployer) {
             let proxy = await BStableProxy.new("bStable Pools Proxy for test", "BSPP-V1", bst.address);
             console.log("Proxy's address: " + proxy.address);
             await proxy.addPool(p1Address, [daiAddress, busdAddress, usdtAddress], 6);
-            await proxy.addPool(p2Address, [btcbAddress, renBtcAddress, anyBtcAddress], 6);
+            await proxy.addPool(p2Address, [btcbAddress, renBtcAddress, anyBtcAddress], 4);
             await bst.setMinter(proxy.address);
         });
     } else {
