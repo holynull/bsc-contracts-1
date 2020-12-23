@@ -71,6 +71,7 @@ module.exports = async function (deployer) {
             await proxy.addPool(p1Address, [daiAddress, busdAddress, usdtAddress], 6);
             await proxy.addPool(p2Address, [btcbAddress, renBtcAddress, anyBtcAddress], 4);
             await bst.setMinter(proxy.address);
+            await bst.updateMiningParameters();
         });
     } else {
 

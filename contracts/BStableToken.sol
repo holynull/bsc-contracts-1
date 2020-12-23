@@ -1,11 +1,12 @@
 pragma solidity ^0.6.0;
 
 import "./BEP20.sol";
+import "./interfaces/IBStableToken.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 // BStable DAO Token
 // All data's decimal is 18.
-contract BStableToken is BEP20, Ownable {
+contract BStableToken is IBStableToken, BEP20, Ownable {
     using SafeMath for uint256;
     address minter;
 
@@ -32,9 +33,7 @@ contract BStableToken is BEP20, Ownable {
     {
         transferOwnership(msg.sender);
         _mint(msg.sender, INITIAL_SUPPLY);
-        start_epoch_time = block.timestamp.add(INFLATION_DELAY).sub(
-            RATE_REDUCTION_TIME
-        );
+        start_epoch_time = block.timestamp.sub(RATE_REDUCTION_TIME);
         mining_epoch = -1;
         rate = 0;
         start_epoch_supply = INITIAL_SUPPLY;
@@ -173,6 +172,12 @@ contract BStableToken is BEP20, Ownable {
             minter == address(0),
             "  # dev: can set the minter only once, at creation"
         );
+        minter = _minter;
+        emit SetMinter(_minter);
+    }
+
+    function transferMinterTo(address _minter) external override {
+        require(msg.sender == minter, "only minter can transfer minter");
         minter = _minter;
         emit SetMinter(_minter);
     }

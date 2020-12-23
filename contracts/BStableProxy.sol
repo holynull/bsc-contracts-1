@@ -71,6 +71,7 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
     function getPoolInfo(uint256 _pid)
         public
         view
+        override
         returns (
             address _poolAddress,
             address[] memory _coins,
@@ -80,27 +81,36 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             uint256 _swapRewardRate,
             uint256 _totalVolAccPoints,
             uint256 _totalVolReward,
-            uint256 _lastUpdateTime
+            uint256 _lastUpdateTime,
+            uint256[] memory _data
         )
     {
         _poolAddress = pools[_pid].poolAddress;
         _coins = pools[_pid].coins;
         _allocPoint = pools[_pid].allocPoint;
+        _data[0] = _allocPoint;
         _accTokenPerShare = pools[_pid].accTokenPerShare;
+        _data[1] = _accTokenPerShare;
         _shareRewardRate = pools[_pid].shareRewardRate;
+        _data[2] = _shareRewardRate;
         _swapRewardRate = pools[_pid].swapRewardRate;
+        _data[3] = _swapRewardRate;
         _totalVolAccPoints = pools[_pid].totalVolAccPoints;
+        _data[4] = _totalVolAccPoints;
         _totalVolReward = pools[_pid].totalVolReward;
+        _data[5] = _totalVolReward;
         _lastUpdateTime = pools[_pid].lastUpdateTime;
+        _data[6] = _lastUpdateTime;
     }
 
-    function getTokenAddress() public view returns (address taddress) {
+    function getTokenAddress() public view override returns (address taddress) {
         taddress = tokenAddress;
     }
 
     function getUserInfo(uint256 _pid, address user)
         public
         view
+        override
         returns (
             uint256 _amount,
             uint256 _volume,
@@ -115,21 +125,26 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
     function getPoolUsers(uint256 _pid)
         public
         view
+        override
         returns (address[] memory _users)
     {
         _users = poolUsers[_pid];
     }
 
-    function getPoolsLength() public view returns (uint256 l) {
+    function getPoolsLength() public view override returns (uint256 l) {
         l = pools.length;
     }
 
-    function getTotalAllocPoint() public view returns (uint256 r) {
+    function getTotalAllocPoint() public view override returns (uint256 r) {
         r = totalAllocPoint;
     }
 
-    function isMigrationOpen() external view returns (bool r) {
+    function isMigrationOpen() external view override returns (bool r) {
         r = _openMigration;
+    }
+
+    function getMigrateFrom() public view override returns (address _a) {
+        _a = migrateFrom;
     }
 
     function A(uint256 _pid)
@@ -590,8 +605,6 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
-    // only owner
-
     function openMigration() external onlyOwner {
         _openMigration = true;
     }
@@ -646,5 +659,88 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             _allocPoint
         );
         pools[_pid].allocPoint = _allocPoint;
+    }
+
+    function migrate1(IBStableProxy from) private {
+        address _poolAddress;
+        address[] memory _coins;
+        uint256[] memory _data;
+        for (uint256 pid = 0; pid < from.getPoolsLength(); pid++) {
+            (_poolAddress, _coins, , , , , , , , _data) = from.getPoolInfo(pid);
+            totalAllocPoint = totalAllocPoint.add(_data[0]);
+            pools.push(
+                PoolInfo({
+                    poolAddress: _poolAddress,
+                    coins: _coins,
+                    allocPoint: _data[0],
+                    accTokenPerShare: _data[1],
+                    shareRewardRate: _data[2],
+                    swapRewardRate: _data[3],
+                    totalVolAccPoints: _data[4],
+                    totalVolReward: _data[5],
+                    lastUpdateTime: _data[6]
+                })
+            );
+        }
+    }
+
+    function migrate2(IBStableProxy from) private {
+        require(pools.length > 0, "pools length is 0");
+        uint256 _amount;
+        uint256 _volume;
+        uint256 _rewardDebt;
+        for (uint256 pid = 0; pid < pools.length; pid++) {
+            address[] memory users = from.getPoolUsers(pid);
+            poolUsers[pid] = users;
+            for (uint256 i = 0; i < users.length; i++) {
+                (_amount, _volume, _rewardDebt) = from.getUserInfo(
+                    pid,
+                    users[i]
+                );
+                userInfo[pid][users[i]] = UserInfo({
+                    amount: _amount,
+                    volume: _volume,
+                    rewardDebt: _rewardDebt
+                });
+            }
+        }
+    }
+
+    function approveLPandTokens(address to) external override onlyOwner {
+        uint256 tokenBal = IBEP20(tokenAddress).balanceOf(address(this));
+        TransferHelper.safeApprove(tokenAddress, to, tokenBal);
+        for (uint256 pid = 0; pid < pools.length; pid++) {
+            uint256 lpAmt =
+                IBEP20(pools[pid].poolAddress).balanceOf(address(this));
+            TransferHelper.safeApprove(pools[pid].poolAddress, to, lpAmt);
+        }
+    }
+
+    function migrate(address _from) external onlyOwner {
+        _openMigration = true;
+        IBStableProxy from = IBStableProxy(_from);
+        require(from.isMigrationOpen(), "from's migration not open.");
+        require(migrateFrom == address(0), "migration only once.");
+        migrate1(from);
+        migrate2(from);
+        tokenAddress = from.getTokenAddress();
+        uint256 tokenBal = IBEP20(tokenAddress).balanceOf(_from);
+        TransferHelper.safeTransferFrom(
+            tokenAddress,
+            _from,
+            address(this),
+            tokenBal
+        );
+        require(pools.length > 0, "no pools");
+        for (uint256 pid = 0; pid < pools.length; pid++) {
+            uint256 lpAmt = IBEP20(pools[pid].poolAddress).balanceOf(_from);
+            TransferHelper.safeTransferFrom(
+                pools[pid].poolAddress,
+                _from,
+                address(this),
+                lpAmt
+            );
+        }
+        migrateFrom = _from;
     }
 }
