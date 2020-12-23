@@ -42,5 +42,7 @@ interface IBStableProxy is IBEP20 {
 
     function getMigrateFrom() external view returns (address _a);
 
-    function approveLPandTokens(address to) external;
+    function transferMinterTo(address to) external;
+
+    function approveTokenTo(address nMinter) external;
 }

@@ -1,7 +1,7 @@
 const BStablePool = artifacts.require("BStablePool");
 const StableCoin = artifacts.require("StableCoin");
 const BStableProxy = artifacts.require("BStableProxy");
-const BStableToken = artifacts.require("BStableToken");
+const BStableTokenForTest = artifacts.require("BStableTokenForTest");
 
 module.exports = async function (deployer) {
     if (deployer.network.indexOf('skipMigrations') > -1) { // skip migration
@@ -64,7 +64,7 @@ module.exports = async function (deployer) {
             return BStablePool.new("bstable Pool (BTCB/renBTC/anyBTC) for test", "BSLP-02", stableCoins, A, fee, adminFee);
         }).then(pool => {
             p2Address = pool.address;
-            return BStableToken.new("bStable DAO Token", "BST");
+            return BStableTokenForTest.new("bStable DAO Token", "BST");
         }).then(async bst => {
             console.log("Token's address: " + bst.address);
             let proxy = await BStableProxy.new("bStable Pools Proxy for test", "BSPP-V1", bst.address);

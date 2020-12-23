@@ -4,16 +4,11 @@ import "./BEP20.sol";
 import "./interfaces/IBEP20.sol";
 import "./interfaces/IBStablePool.sol";
 import "./interfaces/IBStableProxy.sol";
+import "./interfaces/IBStableToken.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./lib/TransferHelper.sol";
-
-interface IBStableToken is IBEP20 {
-    function mint(address to, uint256 amount) external;
-
-    function availableSupply() external view returns (uint256 result);
-}
 
 // Proxy
 contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
@@ -82,25 +77,26 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             uint256 _totalVolAccPoints,
             uint256 _totalVolReward,
             uint256 _lastUpdateTime,
-            uint256[] memory _data
+            uint256[] memory arrData
         )
     {
+        arrData = new uint256[](7);
         _poolAddress = pools[_pid].poolAddress;
         _coins = pools[_pid].coins;
         _allocPoint = pools[_pid].allocPoint;
-        _data[0] = _allocPoint;
+        arrData[0] = pools[_pid].allocPoint;
         _accTokenPerShare = pools[_pid].accTokenPerShare;
-        _data[1] = _accTokenPerShare;
+        arrData[1] = pools[_pid].accTokenPerShare;
         _shareRewardRate = pools[_pid].shareRewardRate;
-        _data[2] = _shareRewardRate;
+        arrData[2] = pools[_pid].shareRewardRate;
         _swapRewardRate = pools[_pid].swapRewardRate;
-        _data[3] = _swapRewardRate;
+        arrData[3] = pools[_pid].swapRewardRate;
         _totalVolAccPoints = pools[_pid].totalVolAccPoints;
-        _data[4] = _totalVolAccPoints;
+        arrData[4] = pools[_pid].totalVolAccPoints;
         _totalVolReward = pools[_pid].totalVolReward;
-        _data[5] = _totalVolReward;
+        arrData[5] = pools[_pid].totalVolReward;
         _lastUpdateTime = pools[_pid].lastUpdateTime;
-        _data[6] = _lastUpdateTime;
+        arrData[6] = pools[_pid].lastUpdateTime;
     }
 
     function getTokenAddress() public view override returns (address taddress) {
@@ -661,7 +657,7 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         pools[_pid].allocPoint = _allocPoint;
     }
 
-    function migrate1(IBStableProxy from) private {
+    function migratePoolInfo(IBStableProxy from) private {
         address _poolAddress;
         address[] memory _coins;
         uint256[] memory _data;
@@ -684,36 +680,19 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         }
     }
 
-    function migrate2(IBStableProxy from) private {
-        require(pools.length > 0, "pools length is 0");
-        uint256 _amount;
-        uint256 _volume;
-        uint256 _rewardDebt;
-        for (uint256 pid = 0; pid < pools.length; pid++) {
-            address[] memory users = from.getPoolUsers(pid);
-            poolUsers[pid] = users;
-            for (uint256 i = 0; i < users.length; i++) {
-                (_amount, _volume, _rewardDebt) = from.getUserInfo(
-                    pid,
-                    users[i]
-                );
-                userInfo[pid][users[i]] = UserInfo({
-                    amount: _amount,
-                    volume: _volume,
-                    rewardDebt: _rewardDebt
-                });
-            }
-        }
+    function transferMinterTo(address to) external override onlyOwner {
+        require(_openMigration, "on allow when migration is open");
+        IBStableToken(tokenAddress).transferMinterTo(to);
     }
 
-    function approveLPandTokens(address to) external override onlyOwner {
-        uint256 tokenBal = IBEP20(tokenAddress).balanceOf(address(this));
-        TransferHelper.safeApprove(tokenAddress, to, tokenBal);
-        for (uint256 pid = 0; pid < pools.length; pid++) {
-            uint256 lpAmt =
-                IBEP20(pools[pid].poolAddress).balanceOf(address(this));
-            TransferHelper.safeApprove(pools[pid].poolAddress, to, lpAmt);
-        }
+    function approveTokenTo(address nMinter) external override onlyOwner {
+        IBStableToken token = IBStableToken(tokenAddress);
+        require(
+            token.getMinter() == nMinter,
+            "only allow to approve token to a minter."
+        );
+        uint256 balance = token.balanceOf(address(this));
+        TransferHelper.safeApprove(tokenAddress, nMinter, balance);
     }
 
     function migrate(address _from) external onlyOwner {
@@ -721,8 +700,7 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         IBStableProxy from = IBStableProxy(_from);
         require(from.isMigrationOpen(), "from's migration not open.");
         require(migrateFrom == address(0), "migration only once.");
-        migrate1(from);
-        migrate2(from);
+        migratePoolInfo(from);
         tokenAddress = from.getTokenAddress();
         uint256 tokenBal = IBEP20(tokenAddress).balanceOf(_from);
         TransferHelper.safeTransferFrom(
@@ -731,16 +709,7 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             address(this),
             tokenBal
         );
-        require(pools.length > 0, "no pools");
-        for (uint256 pid = 0; pid < pools.length; pid++) {
-            uint256 lpAmt = IBEP20(pools[pid].poolAddress).balanceOf(_from);
-            TransferHelper.safeTransferFrom(
-                pools[pid].poolAddress,
-                _from,
-                address(this),
-                lpAmt
-            );
-        }
+
         migrateFrom = _from;
     }
 }
