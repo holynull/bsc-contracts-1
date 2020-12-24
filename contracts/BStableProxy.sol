@@ -276,6 +276,9 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         uint256 dy = IBEP20(pools[_pid].coins[j]).balanceOf(address(this));
         require(dy > 0, "no coin out");
         uint256 accPoints = dy.mul(dy).div(dx);
+        userInfo[_pid][msg.sender].volume = userInfo[_pid][msg.sender]
+            .volume
+            .add(accPoints);
         require(accPoints > 0, "accumulate points is 0");
         uint256 tokenAmt =
             IBEP20(tokenAddress).balanceOf(address(this)).mul(
