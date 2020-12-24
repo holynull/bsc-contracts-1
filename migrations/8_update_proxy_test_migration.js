@@ -23,6 +23,7 @@ module.exports = async function (deployer) {
             console.log("Proxy's address: " + nProxy.address);
             await fromContract.openMigration();
             await fromContract.transferMinterTo(nProxy.address);
+            await fromContract.approveTokenTo(nProxy.address);
             await nProxy.migrate(from);
             await nProxy.closeMigration();
         });

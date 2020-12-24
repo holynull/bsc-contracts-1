@@ -12,7 +12,7 @@ module.exports = async function (deployer) {
     } else if (deployer.network_id == 42) { // kovan
     } else if (deployer.network_id == 56) { // bsc main net
     } else if (deployer.network_id == 97 || deployer.network_id == 5777) { //bsc test net
-        let from = "0xbEc4149D8D47bcd6A810e711aB3701cAA4371935";
+        let from = "0x67B49F8ad59D5C30566BE15f434AEECa6417EAc1";
         let tokenAddress = "";
         let fromContract;
         deployer.then(async () => {
@@ -23,6 +23,7 @@ module.exports = async function (deployer) {
             console.log("Proxy's address: " + nProxy.address);
             await fromContract.openMigration();
             await fromContract.transferMinterTo(nProxy.address);
+            await fromContract.approveTokenTo(nProxy.address);
             await nProxy.migrate(from);
             await nProxy.closeMigration();
         });

@@ -281,9 +281,10 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             .add(accPoints);
         require(accPoints > 0, "accumulate points is 0");
         uint256 tokenAmt =
-            IBEP20(tokenAddress).balanceOf(address(this)).mul(
-                pools[_pid].swapRewardRate.div(10**18)
-            );
+            IBEP20(tokenAddress)
+                .balanceOf(address(this))
+                .mul(pools[_pid].swapRewardRate)
+                .div(10**18);
         uint256 rewardAmt =
             pools[_pid].totalVolReward.add(tokenAmt).mul(accPoints).div(
                 accPoints.add(pools[_pid].totalVolAccPoints)
@@ -480,12 +481,12 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
 
     function updatePool(uint256 _pid) public noOpenMigration {
         PoolInfo storage pool = pools[_pid];
-        if (block.number <= pool.lastUpdateTime) {
+        if (block.timestamp <= pool.lastUpdateTime) {
             return;
         }
         uint256 lpSupply = IBEP20(pool.poolAddress).balanceOf(address(this));
         if (lpSupply == 0) {
-            pool.lastUpdateTime = block.number;
+            pool.lastUpdateTime = block.timestamp;
             return;
         }
         uint256 releaseAmt =
@@ -503,12 +504,12 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         pool.accTokenPerShare = pool.accTokenPerShare.add(
             reward.mul(10**18).div(lpSupply)
         );
-        pool.lastUpdateTime = block.number;
+        pool.lastUpdateTime = block.timestamp;
     }
 
     function updatePoolForExchange(uint256 _pid) public noOpenMigration {
         PoolInfo storage pool = pools[_pid];
-        if (block.number <= pool.lastUpdateTime) {
+        if (block.timestamp <= pool.lastUpdateTime) {
             return;
         }
         uint256 releaseAmt =
@@ -517,7 +518,7 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             );
         uint256 mintAmt = releaseAmt.mul(pool.allocPoint).div(totalAllocPoint);
         IBStableToken(tokenAddress).mint(address(this), mintAmt);
-        pool.lastUpdateTime = block.number;
+        pool.lastUpdateTime = block.timestamp;
     }
 
     function deposit(uint256 _pid, uint256 _amount) external noOpenMigration {
