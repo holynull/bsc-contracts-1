@@ -494,12 +494,7 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
                 IBStableToken(tokenAddress).totalSupply()
             );
         uint256 mintAmt = releaseAmt.mul(pool.allocPoint).div(totalAllocPoint);
-        uint256 reward =
-            releaseAmt
-                .mul(pool.shareRewardRate)
-                .div(10**18)
-                .mul(pool.allocPoint)
-                .div(totalAllocPoint);
+        uint256 reward = mintAmt.mul(pool.shareRewardRate).div(10**18);
         IBStableToken(tokenAddress).mint(address(this), mintAmt);
         pool.accTokenPerShare = pool.accTokenPerShare.add(
             reward.mul(10**18).div(lpSupply)
@@ -518,6 +513,13 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             );
         uint256 mintAmt = releaseAmt.mul(pool.allocPoint).div(totalAllocPoint);
         IBStableToken(tokenAddress).mint(address(this), mintAmt);
+        uint256 lpSupply = IBEP20(pool.poolAddress).balanceOf(address(this));
+        if (lpSupply > 0) {
+            uint256 reward = mintAmt.mul(pool.shareRewardRate).div(10**18);
+            pool.accTokenPerShare = pool.accTokenPerShare.add(
+                reward.mul(10**18).div(lpSupply)
+            );
+        }
         pool.lastUpdateTime = block.timestamp;
     }
 

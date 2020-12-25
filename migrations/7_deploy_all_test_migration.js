@@ -41,7 +41,7 @@ module.exports = async function (deployer) {
             let fee = 30000000;// 1e-10, 0.003, 0.3%
             // let adminFee = 0;
             let adminFee = 6666666666; // 1e-10, 0.666667, 66.67% 
-            return BStablePool.new("bstable Pool (DAI/BUSD/USDT) for test", "BSLP-01", stableCoins, A, fee, adminFee);
+            return BStablePool.new("bstable Pool (bstDAI/bstBUSD/bstUSDT) for test", "BSLP-01", stableCoins, A, fee, adminFee);
         }).then(pool => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
             p1Address = pool.address;

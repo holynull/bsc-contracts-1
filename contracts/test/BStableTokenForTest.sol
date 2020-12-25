@@ -13,7 +13,7 @@ contract BStableTokenForTest is IBStableToken, BEP20, Ownable {
     uint256 DAY = uint256(86400);
     uint256 INITIAL_SUPPLY = uint256(40_000).mul(10**18);
     uint256 INITIAL_RATE = uint256(19_092).mul(10**18).div(DAY);
-    uint256 RATE_REDUCTION_TIME = DAY;
+    uint256 RATE_REDUCTION_TIME = DAY.mul(2);
     uint256 RATE_REDUCTION_COEFFICIENT = 1189207115002721024;
     uint256 INFLATION_DELAY = 86400;
 
