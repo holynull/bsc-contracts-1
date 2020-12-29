@@ -26,7 +26,9 @@ interface IBStableProxy is IBEP20 {
         returns (
             uint256 _amount,
             uint256 _volume,
-            uint256 _rewardDebt
+            uint256 _rewardDebt,
+            uint256 _volReward,
+            uint256 _farmingReward
         );
 
     function getPoolUsers(uint256 _pid)

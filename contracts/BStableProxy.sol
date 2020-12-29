@@ -29,6 +29,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         uint256 amount; // How many LP tokens the user has provided.
         uint256 volume; // swap volume.
         uint256 rewardDebt; // Reward debt. See explanation below.
+        uint256 volReward;
+        uint256 farmingReward;
     }
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -110,12 +112,16 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         returns (
             uint256 _amount,
             uint256 _volume,
-            uint256 _rewardDebt
+            uint256 _rewardDebt,
+            uint256 _volReward,
+            uint256 _farmingReward
         )
     {
         _amount = userInfo[_pid][user].amount;
         _volume = userInfo[_pid][user].volume;
         _rewardDebt = userInfo[_pid][user].rewardDebt;
+        _volReward = userInfo[_pid][user].volReward;
+        _farmingReward = userInfo[_pid][user].farmingReward;
     }
 
     function getPoolUsers(uint256 _pid)
@@ -260,6 +266,16 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             pools[_pid].poolAddress != address(0),
             "address(0) can't be a pool"
         );
+        bool exists = false;
+        for (uint256 index = 0; index < poolUsers[_pid].length; index++) {
+            if (poolUsers[_pid][index] == msg.sender) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            poolUsers[_pid].push(msg.sender);
+        }
         updatePoolForExchange(_pid);
         TransferHelper.safeTransferFrom(
             pools[_pid].coins[i],
@@ -275,33 +291,38 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         IBStablePool(pools[_pid].poolAddress).exchange(i, j, dx, min_dy);
         uint256 dy = IBEP20(pools[_pid].coins[j]).balanceOf(address(this));
         require(dy > 0, "no coin out");
-        uint256 accPoints = dy.mul(dy).div(dx);
         userInfo[_pid][msg.sender].volume = userInfo[_pid][msg.sender]
             .volume
-            .add(accPoints);
-        require(accPoints > 0, "accumulate points is 0");
+            .add(dy.mul(dy).div(dx));
+        require(dy.mul(dy).div(dx) > 0, "accumulate points is 0");
         uint256 tokenAmt =
             IBEP20(tokenAddress)
                 .balanceOf(address(this))
                 .mul(pools[_pid].swapRewardRate)
                 .div(10**18);
         uint256 rewardAmt =
-            pools[_pid].totalVolReward.add(tokenAmt).mul(accPoints).div(
-                accPoints.add(pools[_pid].totalVolAccPoints)
+            pools[_pid].totalVolReward.add(tokenAmt).mul(dy.mul(dy).div(dx)).div(
+                dy.mul(dy).div(dx).add(pools[_pid].totalVolAccPoints)
             );
         if (rewardAmt > tokenAmt) {
+            userInfo[_pid][msg.sender].volReward = userInfo[_pid][msg.sender]
+                .volReward
+                .add(tokenAmt);
             TransferHelper.safeTransfer(tokenAddress, msg.sender, tokenAmt);
             pools[_pid].totalVolReward = pools[_pid].totalVolReward.add(
                 tokenAmt
             );
         } else {
+            userInfo[_pid][msg.sender].volReward = userInfo[_pid][msg.sender]
+                .volReward
+                .add(rewardAmt);
             TransferHelper.safeTransfer(tokenAddress, msg.sender, rewardAmt);
             pools[_pid].totalVolReward = pools[_pid].totalVolReward.add(
                 rewardAmt
             );
         }
         pools[_pid].totalVolAccPoints = pools[_pid].totalVolAccPoints.add(
-            accPoints
+            dy.mul(dy).div(dx)
         );
         TransferHelper.safeTransfer(pools[_pid].coins[j], msg.sender, dy);
     }
@@ -524,10 +545,19 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
     }
 
     function deposit(uint256 _pid, uint256 _amount) external noOpenMigration {
-        PoolInfo storage pool = pools[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        poolUsers[_pid].push(msg.sender);
+        bool exists = false;
+        for (uint256 i = 0; i < poolUsers[_pid].length; i++) {
+            if (poolUsers[_pid][i] == msg.sender) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            poolUsers[_pid].push(msg.sender);
+        }
         updatePool(_pid);
+        PoolInfo storage pool = pools[_pid];
         if (user.amount > 0) {
             uint256 pending =
                 user.amount.mul(pool.accTokenPerShare).div(10**18).sub(
@@ -535,14 +565,27 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
                 );
             if (pending > 0) {
                 uint256 tokenBal =
-                    IBEP20(tokenAddress).balanceOf(address(this));
+                    IBEP20(tokenAddress)
+                        .balanceOf(address(this))
+                        .mul(pool.shareRewardRate)
+                        .div(10**18);
                 if (tokenBal >= pending) {
+                    userInfo[_pid][msg.sender].farmingReward = userInfo[_pid][
+                        msg.sender
+                    ]
+                        .farmingReward
+                        .add(pending);
                     TransferHelper.safeTransfer(
                         tokenAddress,
                         msg.sender,
                         pending
                     );
                 } else {
+                    userInfo[_pid][msg.sender].farmingReward = userInfo[_pid][
+                        msg.sender
+                    ]
+                        .farmingReward
+                        .add(tokenBal);
                     TransferHelper.safeTransfer(
                         tokenAddress,
                         msg.sender,
@@ -565,19 +608,33 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
     }
 
     function withdraw(uint256 _pid, uint256 _amount) external noOpenMigration {
-        PoolInfo storage pool = pools[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
+        PoolInfo storage pool = pools[_pid];
         uint256 pending =
             user.amount.mul(pool.accTokenPerShare).div(10**18).sub(
                 user.rewardDebt
             );
         if (pending > 0) {
-            uint256 tokenBal = IBEP20(tokenAddress).balanceOf(address(this));
+            uint256 tokenBal =
+                IBEP20(tokenAddress)
+                    .balanceOf(address(this))
+                    .mul(pool.shareRewardRate)
+                    .div(10**18);
             if (tokenBal >= pending) {
+                userInfo[_pid][msg.sender].farmingReward = userInfo[_pid][
+                    msg.sender
+                ]
+                    .farmingReward
+                    .add(pending);
                 TransferHelper.safeTransfer(tokenAddress, msg.sender, pending);
             } else {
+                userInfo[_pid][msg.sender].farmingReward = userInfo[_pid][
+                    msg.sender
+                ]
+                    .farmingReward
+                    .add(tokenBal);
                 TransferHelper.safeTransfer(tokenAddress, msg.sender, tokenBal);
             }
         }

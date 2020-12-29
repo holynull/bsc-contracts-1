@@ -12,7 +12,7 @@ module.exports = async function (deployer) {
     } else if (deployer.network_id == 42) { // kovan
     } else if (deployer.network_id == 56) { // bsc main net
     } else if (deployer.network_id == 97 || deployer.network_id == 5777) { //bsc test net
-        let from = "0xE236Fa1b178C61449CA2A152A62C838cFd2ddA04";
+        let from = "0xe6D92fed3b36188bD37b63C86419822Eec6e07B5";
         let tokenAddress = "";
         let fromContract;
         deployer.then(async () => {
