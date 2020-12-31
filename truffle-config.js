@@ -50,6 +50,11 @@ module.exports = {
             port: 8545,            // Standard Ethereum port (default: none)
             network_id: "5777",       // Any network (default: none)
         },
+        dev_skipMigrations: {
+            host: "127.0.0.1",     // Localhost (default: none)
+            port: 8545,            // Standard Ethereum port (default: none)
+            network_id: "5777",       // Any network (default: none)
+        },
         rinkeby: {
             provider: () => new HDWalletProvider(mnemonic, "https://rinkeby.infura.io/v3/" + projectId),
             // provider: () => new HDWalletProvider(mnemonic, "https://api.infura.io/v1/jsonrpc/rinkeby"),
