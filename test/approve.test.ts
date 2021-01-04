@@ -15,9 +15,9 @@ const stableCoinContract: StableCoinContract = artifacts.require('StableCoin.sol
 const tokenContract: BStableTokenForTestDEVContract = artifacts.require('BStableTokenForTestDEV.sol');
 const poolContract: BStablePoolContract = artifacts.require('BStablePool.sol');
 import { BigNumber } from 'bignumber.js';
+import { config } from './config'
 
 contract('BStable proxy', async accounts => {
-
 
     let proxyInstance: BStableProxyInstance;
     let dai: StableCoinInstance;
@@ -34,7 +34,7 @@ contract('BStable proxy', async accounts => {
 
 
     before('Get proxy contract instance', async () => {
-        proxyInstance = await proxyContract.at('0xD655588Aa65b18566c7a3538835A42a6650dA5B7');
+        proxyInstance = await proxyContract.at(config.proxyAddress);
         let p1Info = await proxyInstance.getPoolInfo(0);
         let p2Info = await proxyInstance.getPoolInfo(1);
         p1 = await poolContract.at(p1Info[0]);
@@ -47,35 +47,35 @@ contract('BStable proxy', async accounts => {
         anyBtc = await stableCoinContract.at(p2Info[1][2]);
         let tokenAddress = await proxyInstance.getTokenAddress();
         bst = await tokenContract.at(tokenAddress);
-        for (let i = 0; i < accounts.length; i++) {
-            await p1.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await p2.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await dai.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await busd.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await usdt.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await btcb.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await renBtc.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await anyBtc.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await dai.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await busd.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await usdt.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await btcb.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await renBtc.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await anyBtc.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await dai.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await busd.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await usdt.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await btcb.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await renBtc.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-            await anyBtc.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
-        }
+
     });
 
 
-    describe('获取用户状态数据', async () => {
+    describe('测试approve', async () => {
 
-        it('获取数据', async () => {
-
+        it('流动性以及6个币最大approve', async () => {
+            for (let i = 0; i < accounts.length; i++) {
+                await p1.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await p2.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await dai.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await busd.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await usdt.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await btcb.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await renBtc.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await anyBtc.approve(proxyInstance.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await dai.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await busd.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await usdt.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await btcb.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await renBtc.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await anyBtc.approve(p1.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await dai.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await busd.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await usdt.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await btcb.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await renBtc.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+                await anyBtc.approve(p2.address, maxApproveAmt.toFixed(0, BigNumber.ROUND_DOWN), { from: accounts[i] });
+            }
         });
 
     });

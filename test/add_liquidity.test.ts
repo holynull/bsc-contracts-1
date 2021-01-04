@@ -16,56 +16,25 @@ const tokenContract: BStableTokenForTestDEVContract = artifacts.require('BStable
 const poolContract: BStablePoolContract = artifacts.require('BStablePool.sol');
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 import { BigNumber } from 'bignumber.js';
+import { config } from './config'
 
 contract('BStable proxy', async accounts => {
 
 
     let proxyInstance: BStableProxyInstance;
-    let dai: StableCoinInstance;
-    let busd: StableCoinInstance;
-    let usdt: StableCoinInstance;
-    let btcb: StableCoinInstance;
-    let renBtc: StableCoinInstance;
-    let anyBtc: StableCoinInstance;
-    let bst: BStableTokenForTestDEVInstance;
-    let p1: BStablePoolInstance;
-    let p2: BStablePoolInstance;
-    let denominator = new BigNumber(10).exponentiatedBy(18);
-    let maxApproveAmt = new BigNumber(2).exponentiatedBy(255);
-
 
     before('Get proxy contract instance', async () => {
-        // proxyInstance = await proxyContract.at('0xD655588Aa65b18566c7a3538835A42a6650dA5B7');
-        // let p1Info = await proxyInstance.getPoolInfo(0);
-        // let p2Info = await proxyInstance.getPoolInfo(1);
-        // p1 = await poolContract.at(p1Info[0]);
-        // p2 = await poolContract.at(p2Info[0]);
-        // dai = await stableCoinContract.at(p1Info[1][0]);
-        // busd = await stableCoinContract.at(p1Info[1][1]);
-        // usdt = await stableCoinContract.at(p1Info[1][2]);
-        // btcb = await stableCoinContract.at(p2Info[1][0]);
-        // renBtc = await stableCoinContract.at(p2Info[1][1]);
-        // anyBtc = await stableCoinContract.at(p2Info[1][2]);
-        // let tokenAddress = await proxyInstance.getTokenAddress();
-        // bst = await tokenContract.at(tokenAddress);
-
-        
+        proxyInstance = await proxyContract.at(config.proxyAddress);
     });
 
 
-    describe('获取用户状态数据', async () => {
+    describe('测试添加流动性', async () => {
 
-        it('获取数据', async () => {
-            let sta = new Date().getTime();
-            let end = sta + 3600 * 4 * 1000;
-            for (; true;) {
-                let now = Date.now();
-                if (now >= end) {
-                    break;
-                }
-                let rand = Math.floor(Math.random() * 10 * 1000);
-                console.log(rand);
-                await delay(rand);
+        it('每个账户添加10,000流动性', async () => {
+            for (let i = 0; i < accounts.length; i++) {
+                let amt = web3.utils.toWei('10000', 'ether');
+                await proxyInstance.add_liquidity(0, [amt, amt, amt], 0, { from: accounts[i] });
+                await proxyInstance.add_liquidity(1, [amt, amt, amt], 0, { from: accounts[i] });
             }
         });
 

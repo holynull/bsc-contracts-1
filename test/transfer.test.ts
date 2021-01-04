@@ -6,6 +6,7 @@ import {
 const proxyContract: BStableProxyContract = artifacts.require('BStableProxy.sol');
 const stableCoinContract: StableCoinContract = artifacts.require('StableCoin.sol');
 import { BigNumber } from 'bignumber.js';
+import { config } from './config';
 
 contract('BStable proxy', async accounts => {
 
@@ -21,7 +22,7 @@ contract('BStable proxy', async accounts => {
 
 
     before('Get proxy contract instance', async () => {
-        proxyInstance = await proxyContract.at('0xD655588Aa65b18566c7a3538835A42a6650dA5B7');
+        proxyInstance = await proxyContract.at(config.proxyAddress);
         let p1Info = await proxyInstance.getPoolInfo(0);
         let p2Info = await proxyInstance.getPoolInfo(1);
         dai = await stableCoinContract.at(p1Info[1][0]);
@@ -53,65 +54,14 @@ contract('BStable proxy', async accounts => {
     describe('给地址转账', async () => {
 
         it('转账', async () => {
-            await dai.transfer(accounts[1], web3.utils.toWei('100000', 'ether'));
-            await dai.transfer(accounts[2], web3.utils.toWei('100000', 'ether'));
-            await dai.transfer(accounts[3], web3.utils.toWei('100000', 'ether'));
-            await dai.transfer(accounts[4], web3.utils.toWei('100000', 'ether'));
-            await dai.transfer(accounts[5], web3.utils.toWei('100000', 'ether'));
-            await dai.transfer(accounts[6], web3.utils.toWei('100000', 'ether'));
-            await dai.transfer(accounts[7], web3.utils.toWei('100000', 'ether'));
-            await dai.transfer(accounts[8], web3.utils.toWei('100000', 'ether'));
-            await dai.transfer(accounts[9], web3.utils.toWei('100000', 'ether'));
-
-            await busd.transfer(accounts[1], web3.utils.toWei('100000', 'ether'));
-            await busd.transfer(accounts[2], web3.utils.toWei('100000', 'ether'));
-            await busd.transfer(accounts[3], web3.utils.toWei('100000', 'ether'));
-            await busd.transfer(accounts[4], web3.utils.toWei('100000', 'ether'));
-            await busd.transfer(accounts[5], web3.utils.toWei('100000', 'ether'));
-            await busd.transfer(accounts[6], web3.utils.toWei('100000', 'ether'));
-            await busd.transfer(accounts[7], web3.utils.toWei('100000', 'ether'));
-            await busd.transfer(accounts[8], web3.utils.toWei('100000', 'ether'));
-            await busd.transfer(accounts[9], web3.utils.toWei('100000', 'ether'));
-
-            await usdt.transfer(accounts[1], web3.utils.toWei('100000', 'ether'));
-            await usdt.transfer(accounts[2], web3.utils.toWei('100000', 'ether'));
-            await usdt.transfer(accounts[3], web3.utils.toWei('100000', 'ether'));
-            await usdt.transfer(accounts[4], web3.utils.toWei('100000', 'ether'));
-            await usdt.transfer(accounts[5], web3.utils.toWei('100000', 'ether'));
-            await usdt.transfer(accounts[6], web3.utils.toWei('100000', 'ether'));
-            await usdt.transfer(accounts[7], web3.utils.toWei('100000', 'ether'));
-            await usdt.transfer(accounts[8], web3.utils.toWei('100000', 'ether'));
-            await usdt.transfer(accounts[9], web3.utils.toWei('100000', 'ether'));
-
-            await btcb.transfer(accounts[1], web3.utils.toWei('100000', 'ether'));
-            await btcb.transfer(accounts[2], web3.utils.toWei('100000', 'ether'));
-            await btcb.transfer(accounts[3], web3.utils.toWei('100000', 'ether'));
-            await btcb.transfer(accounts[4], web3.utils.toWei('100000', 'ether'));
-            await btcb.transfer(accounts[5], web3.utils.toWei('100000', 'ether'));
-            await btcb.transfer(accounts[6], web3.utils.toWei('100000', 'ether'));
-            await btcb.transfer(accounts[7], web3.utils.toWei('100000', 'ether'));
-            await btcb.transfer(accounts[8], web3.utils.toWei('100000', 'ether'));
-            await btcb.transfer(accounts[9], web3.utils.toWei('100000', 'ether'));
-
-            await renBtc.transfer(accounts[1], web3.utils.toWei('100000', 'ether'));
-            await renBtc.transfer(accounts[2], web3.utils.toWei('100000', 'ether'));
-            await renBtc.transfer(accounts[3], web3.utils.toWei('100000', 'ether'));
-            await renBtc.transfer(accounts[4], web3.utils.toWei('100000', 'ether'));
-            await renBtc.transfer(accounts[5], web3.utils.toWei('100000', 'ether'));
-            await renBtc.transfer(accounts[6], web3.utils.toWei('100000', 'ether'));
-            await renBtc.transfer(accounts[7], web3.utils.toWei('100000', 'ether'));
-            await renBtc.transfer(accounts[8], web3.utils.toWei('100000', 'ether'));
-            await renBtc.transfer(accounts[9], web3.utils.toWei('100000', 'ether'));
-
-            await anyBtc.transfer(accounts[1], web3.utils.toWei('100000', 'ether'));
-            await anyBtc.transfer(accounts[2], web3.utils.toWei('100000', 'ether'));
-            await anyBtc.transfer(accounts[3], web3.utils.toWei('100000', 'ether'));
-            await anyBtc.transfer(accounts[4], web3.utils.toWei('100000', 'ether'));
-            await anyBtc.transfer(accounts[5], web3.utils.toWei('100000', 'ether'));
-            await anyBtc.transfer(accounts[6], web3.utils.toWei('100000', 'ether'));
-            await anyBtc.transfer(accounts[7], web3.utils.toWei('100000', 'ether'));
-            await anyBtc.transfer(accounts[8], web3.utils.toWei('100000', 'ether'));
-            await anyBtc.transfer(accounts[9], web3.utils.toWei('100000', 'ether'));
+            for (let i = 0; i < accounts.length; i++) {
+                await dai.transfer(accounts[i], web3.utils.toWei('100000', 'ether'));
+                await busd.transfer(accounts[i], web3.utils.toWei('100000', 'ether'));
+                await usdt.transfer(accounts[i], web3.utils.toWei('100000', 'ether'));
+                await btcb.transfer(accounts[i], web3.utils.toWei('100000', 'ether'));
+                await renBtc.transfer(accounts[i], web3.utils.toWei('100000', 'ether'));
+                await anyBtc.transfer(accounts[i], web3.utils.toWei('100000', 'ether'));
+            }
             for (let i = 0; i < accounts.length; i++) {
                 let daiBalStr = await dai.balanceOf(accounts[i]);
                 console.log("DAI balance: " + new BigNumber(daiBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));

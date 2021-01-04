@@ -9,6 +9,7 @@ import {
 const proxyContract: BStableProxyContract = artifacts.require('BStableProxy.sol');
 const tokenContract: BStableTokenForTestDEVContract = artifacts.require('BStableTokenForTestDEV.sol');
 import { BigNumber } from 'bignumber.js';
+import { config } from './config';
 
 contract('BStable proxy', async accounts => {
 
@@ -19,23 +20,22 @@ contract('BStable proxy', async accounts => {
 
 
     before('Get proxy contract instance', async () => {
-        proxyInstance = await proxyContract.at('0xD655588Aa65b18566c7a3538835A42a6650dA5B7');
+        proxyInstance = await proxyContract.at(config.proxyAddress);
         let tokenAddress = await proxyInstance.getTokenAddress();
         bst = await tokenContract.at(tokenAddress);
-        await bst.updateMiningParameters();
-        console.log('======================================================');
-        let bstTotalSupply = await bst.totalSupply();
-        console.log('BST totalSupply: ' + new BigNumber(bstTotalSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-        let bstAvailableSupply = await bst.availableSupply();
-        console.log('BST availableSupply: ' + new BigNumber(bstAvailableSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-        console.log('======================================================');
     });
 
 
-    describe('获取用户状态数据', async () => {
+    describe('测试token合约', async () => {
 
-        it('获取数据', async () => {
-
+        it('测试updateMiningParameter', async () => {
+            await bst.updateMiningParameters();
+            console.log('======================================================');
+            let bstTotalSupply = await bst.totalSupply();
+            console.log('BST totalSupply: ' + new BigNumber(bstTotalSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            let bstAvailableSupply = await bst.availableSupply();
+            console.log('BST availableSupply: ' + new BigNumber(bstAvailableSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            console.log('======================================================');
         });
 
     });
