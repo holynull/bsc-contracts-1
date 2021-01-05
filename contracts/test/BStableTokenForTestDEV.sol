@@ -196,7 +196,10 @@ contract BStableTokenForTestDEV is IBStableToken, BEP20, Ownable {
         require(msg.sender == minter, "# dev: minter only");
         require(_to != address(0), " # dev: zero address");
 
-        if (block.timestamp >= start_epoch_time.add(RATE_REDUCTION_TIME)) {
+        if (
+            block.timestamp >= start_epoch_time.add(RATE_REDUCTION_TIME) &&
+            mining_epoch < 4
+        ) {
             _updateMiningParameters();
         }
         uint256 _total_supply = totalSupply().add(_value);
