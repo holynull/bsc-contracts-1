@@ -87,6 +87,12 @@ contract('BStable proxy', async accounts => {
         console.log('Proxy BST balance: ' + new BigNumber(bstProxyBal).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
         let bstRate = await bst.getRate();
         console.log('BST rate: ' + new BigNumber(bstRate).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+        let stage = await bst.getMiningEpoch();
+        console.log('BST stage: ' + stage);
+        let startSupply = await bst.startEpochSupply();
+        console.log('BST startSupply: ' + new BigNumber(startSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+        let startTime = await bst.startEpochTime();
+        console.log('BST start time: ' + new Date(Number(startTime) * 1000));
     });
 
 

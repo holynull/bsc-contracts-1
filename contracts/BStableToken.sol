@@ -45,6 +45,10 @@ contract BStableToken is IBStableToken, BEP20, Ownable {
         _rate = rate;
     }
 
+    function getMiningEpoch() public view returns (int128 r) {
+        r = mining_epoch;
+    }
+
     function startEpochSupply() public view returns (uint256 _supply) {
         _supply = start_epoch_supply;
     }
@@ -195,18 +199,22 @@ contract BStableToken is IBStableToken, BEP20, Ownable {
         override
         returns (bool r)
     {
-        require(msg.sender == minter, "# dev: minter only");
-        require(_to != address(0), " # dev: zero address");
+        if (mining_epoch < 4) {
+            require(msg.sender == minter, "# dev: minter only");
+            require(_to != address(0), " # dev: zero address");
 
-        if (block.timestamp >= start_epoch_time.add(RATE_REDUCTION_TIME)) {
-            _updateMiningParameters();
+            if (block.timestamp >= start_epoch_time.add(RATE_REDUCTION_TIME)) {
+                _updateMiningParameters();
+            }
+            uint256 _total_supply = totalSupply().add(_value);
+            require(
+                _total_supply <= _availableSupply(),
+                "# dev: exceeds allowable mint amount"
+            );
+            _mint(_to, _value);
+            r = true;
+        } else {
+            r = false;
         }
-        uint256 _total_supply = totalSupply().add(_value);
-        require(
-            _total_supply <= _availableSupply(),
-            "# dev: exceeds allowable mint amount"
-        );
-        _mint(_to, _value);
-        r = true;
     }
 }
