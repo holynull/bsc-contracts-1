@@ -1,7 +1,7 @@
 {
-    "name": "option-protocol",
+    "name": "bsc-contracts",
     "version": "1.0.0",
-    "description": "Ploutoz's option protocol",
+    "description": "",
     "main": "index.js",
     "scripts": {
         "k:test:oracle": "truffle test test/oracle.test.ts --network kovan_oracle",
