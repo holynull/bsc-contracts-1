@@ -13,9 +13,9 @@ module.exports = async function (deployer) {
     } else if (deployer.network_id == 42) { // kovan
     } else if (deployer.network_id == 56) { // bsc main net
     } else if (deployer.network_id == 97 || deployer.network_id == 5777) { //bsc test net
-        let from = '0xFc50cC3eC8631c3BD61B834Fd8EfA4BA2B11A035';
+        let from = '0x77e0b8147fdd8d7f897523ED49394F686f5Ae1B9';
         deployer.then(() => {
-            return BStableTokenForTest.new("bStable DAO Token", "BST");
+            return BStableTokenForTest.new("bStable DAO Token for Test", "BST");
         }).then(async bst => {
             console.log("Token's address: " + bst.address);
             let proxy = await BStableProxy.new("bStable Pools Proxy for test", "BSPP-V1", bst.address);
