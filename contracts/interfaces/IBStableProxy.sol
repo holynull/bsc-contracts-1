@@ -1,5 +1,6 @@
 pragma solidity ^0.6.0;
 import "../interfaces/IBEP20.sol";
+import "../BStableTokenWallet.sol";
 
 interface IBStableProxy is IBEP20 {
     function getPoolInfo(uint256 _pid)
@@ -47,4 +48,13 @@ interface IBStableProxy is IBEP20 {
     function transferMinterTo(address to) external;
 
     function approveTokenTo(address nMinter) external;
+
+    function getWallets()
+        external
+        view
+        returns (
+            BStableTokenWallet walletShare,
+            BStableTokenWallet walletSwap,
+            BStableTokenWallet walletLPStaking
+        );
 }

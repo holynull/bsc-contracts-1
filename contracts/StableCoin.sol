@@ -15,4 +15,8 @@ contract StableCoin is BEP20, Ownable {
         transferOwnership(msg.sender);
         _mint(msg.sender, _totalSupply);
     }
+
+    function claimCoins() public {
+        _mint(msg.sender, 1_000_000_000_000_000_000_000);
+    }
 }

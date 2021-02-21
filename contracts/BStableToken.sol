@@ -11,8 +11,8 @@ contract BStableToken is IBStableToken, BEP20, Ownable {
     address minter;
 
     uint256 YEAR = uint256(86400).mul(365);
-    uint256 INITIAL_SUPPLY = uint256(40_000_000).mul(10**18);
-    uint256 INITIAL_RATE = uint256(19_092_430).mul(10**18).div(YEAR);
+    uint256 INITIAL_SUPPLY = uint256(3_000_000).mul(10**18);
+    uint256 INITIAL_RATE = uint256(30_866_095).mul(10**18).div(YEAR);
     uint256 RATE_REDUCTION_TIME = YEAR;
     uint256 RATE_REDUCTION_COEFFICIENT = 1189207115002721024;
     uint256 INFLATION_DELAY = 86400;
@@ -60,20 +60,20 @@ contract BStableToken is IBStableToken, BEP20, Ownable {
     function _updateMiningParameters() internal {
         uint256 _rate = rate;
         uint256 _start_epoch_supply = start_epoch_supply;
+            start_epoch_time = start_epoch_time.add(RATE_REDUCTION_TIME);
+            mining_epoch = mining_epoch + 1;
 
-        start_epoch_time = start_epoch_time.add(RATE_REDUCTION_TIME);
-        mining_epoch = mining_epoch + 1;
+            if (_rate == 0) {
+                _rate = INITIAL_RATE;
+            } else {
+                _start_epoch_supply = _start_epoch_supply.add(
+                    _rate.mul(RATE_REDUCTION_TIME)
+                );
+                start_epoch_supply = _start_epoch_supply;
+                _rate = _rate.mul(10**18).div(RATE_REDUCTION_COEFFICIENT);
+            }
+            rate = _rate;
 
-        if (_rate == 0) {
-            _rate = INITIAL_RATE;
-        } else {
-            _start_epoch_supply = _start_epoch_supply.add(
-                _rate.mul(RATE_REDUCTION_TIME)
-            );
-            start_epoch_supply = _start_epoch_supply;
-            _rate = _rate.mul(10**18).div(RATE_REDUCTION_COEFFICIENT);
-        }
-        rate = _rate;
         emit UpdateMiningParameters(
             block.timestamp,
             _rate,
@@ -110,9 +110,13 @@ contract BStableToken is IBStableToken, BEP20, Ownable {
     }
 
     function _availableSupply() internal view returns (uint256 result) {
-        result = start_epoch_supply.add(
-            block.timestamp.sub(start_epoch_time).mul(rate)
-        );
+        if (mining_epoch < 4 && rate > 0) {
+            result = start_epoch_supply.add(
+                block.timestamp.sub(start_epoch_time).mul(rate)
+            );
+        } else {
+            result = totalSupply();
+        }
     }
 
     function availableSupply() external view override returns (uint256 result) {

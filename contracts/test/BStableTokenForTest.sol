@@ -11,8 +11,8 @@ contract BStableTokenForTest is IBStableToken, BEP20, Ownable {
     address minter;
 
     uint256 DAY = uint256(86400);
-    uint256 INITIAL_SUPPLY = uint256(40_000).mul(10**18);
-    uint256 INITIAL_RATE = uint256(19_092).mul(10**18).div(DAY.mul(2));
+    uint256 INITIAL_SUPPLY = uint256(3_000).mul(10**18);
+    uint256 INITIAL_RATE = uint256(30_866).mul(10**18).div(DAY.mul(2));
     uint256 RATE_REDUCTION_TIME = DAY.mul(2);
     uint256 RATE_REDUCTION_COEFFICIENT = 1189207115002721024;
     uint256 INFLATION_DELAY = 86400;
@@ -58,7 +58,6 @@ contract BStableTokenForTest is IBStableToken, BEP20, Ownable {
     function _updateMiningParameters() internal {
         uint256 _rate = rate;
         uint256 _start_epoch_supply = start_epoch_supply;
-
         start_epoch_time = start_epoch_time.add(RATE_REDUCTION_TIME);
         mining_epoch = mining_epoch + 1;
 
@@ -72,6 +71,7 @@ contract BStableTokenForTest is IBStableToken, BEP20, Ownable {
             _rate = _rate.mul(10**18).div(RATE_REDUCTION_COEFFICIENT);
         }
         rate = _rate;
+
         emit UpdateMiningParameters(
             block.timestamp,
             _rate,
@@ -108,9 +108,13 @@ contract BStableTokenForTest is IBStableToken, BEP20, Ownable {
     }
 
     function _availableSupply() internal view returns (uint256 result) {
-        result = start_epoch_supply.add(
-            block.timestamp.sub(start_epoch_time).mul(rate)
-        );
+        if (mining_epoch < 4 && rate > 0) {
+            result = start_epoch_supply.add(
+                block.timestamp.sub(start_epoch_time).mul(rate)
+            );
+        } else {
+            result = totalSupply();
+        }
     }
 
     function availableSupply() external view override returns (uint256 result) {
