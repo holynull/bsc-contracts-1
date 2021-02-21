@@ -91,7 +91,7 @@ contract AssetManagementCenter is BEP20, Ownable, ReentrancyGuard {
                 locks[assetAddress].epochTime > block.timestamp,
             "within a lock-in period "
         );
-        uint256 bal = IBEPt20(assetAddress).balanceOf(address(this));
+        uint256 bal = IBEP20(assetAddress).balanceOf(address(this));
         require(bal >= amt, "no enough balance");
         TransferHelper.safeTransfer(assetAddress, msg.sender, amt);
     }
