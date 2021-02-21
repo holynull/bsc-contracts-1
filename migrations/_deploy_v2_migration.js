@@ -1,9 +1,22 @@
 const BStablePool = artifacts.require("BStablePool");
 const StableCoin = artifacts.require("StableCoin");
-const BStableProxy = artifacts.require("BStableProxy");
-const BStableToken = artifacts.require("BStableToken");
+const BStableProxyV2 = artifacts.require("BStableProxyV2");
+const BStableTokenV2 = artifacts.require("BStableTokenV2");
+const config = require('./config');
 
 module.exports = async function (deployer) {
+    let owner;
+    let dev;
+    if (config && config.owner) {
+        owner = config.owner;
+    } else {
+        owner = accounts[0];
+    }
+    if (config && config.dev) {
+        dev = config.dev;
+    } else {
+        dev = accounts[0];
+    }
     if (deployer.network.indexOf('skipMigrations') > -1) { // skip migration
         return;
     }
@@ -14,7 +27,7 @@ module.exports = async function (deployer) {
     } else if (deployer.network_id == 1) { // main net
     } else if (deployer.network_id == 42) { // kovan
     } else if (deployer.network_id == 56) { // bsc main net
-    } else if (deployer.network_id == 97 || deployer.network_id == 5777) { //bsc test net
+    } else if (deployer.network_id == 256 || deployer.network_id == 5777) { //heco test net
         let daiAddress;
         let busdAddress;
         let usdtAddress;
@@ -25,54 +38,52 @@ module.exports = async function (deployer) {
         let p2Address;
         deployer.then(() => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
-            return StableCoin.new("DAI for bStable test", "bstDAI", totalSupply);
+            return StableCoin.new("bowDAI for BStable test", "bstableDAI", totalSupply);
         }).then(dai => {
             daiAddress = dai.address;
             let totalSupply = web3.utils.toWei('100000000', 'ether');
-            return StableCoin.new("BUSD for bStable test", "bstBUSD", totalSupply);
+            return StableCoin.new("bstableHUSD for BStable test", "bstableHUSD", totalSupply);
         }).then(busd => {
             busdAddress = busd.address;
             let totalSupply = web3.utils.toWei('100000000', 'ether');
-            return StableCoin.new("USDT for bStable test", "bstUSDT", totalSupply);
+            return StableCoin.new("bstableUSDT for BStable test", "bstableUSDT", totalSupply);
         }).then(usdt => {
             usdtAddress = usdt.address;
             let stableCoins = [daiAddress, busdAddress, usdtAddress];
             let A = 100;
-            let fee = 30000000;// 1e-10, 0.003, 0.3%
+            let fee = 10000000;// 1e-10, 0.003, 0.3%
             // let adminFee = 0;
-            let adminFee = 6666666666; // 1e-10, 0.666667, 66.67% 
-            return BStablePool.new("bstable Pool (bstDAI/bstBUSD/bstUSDT) for test", "BSLP-01", stableCoins, A, fee, adminFee);
+            let adminFee = 5000000000; // 1e-10, 0.666667, 66.67% 
+            return BStablePool.new("BStable Pool (bstableDAI/bstableHUSD/bstableUSDT) for test", "BSLP-01", stableCoins, A, fee, adminFee, owner);
         }).then(pool => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
             p1Address = pool.address;
-            return StableCoin.new("BTCB for bStable test", "BTCB", totalSupply);
+            return StableCoin.new("HBTC for BStable test", "HBTC", totalSupply);
         }).then(btcb => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
             btcbAddress = btcb.address;
-            return StableCoin.new("renBTC for bStable test", "renBTC", totalSupply);
+            return StableCoin.new("renBTC for BStable test", "renBTC", totalSupply);
         }).then(renBtc => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
             renBtcAddress = renBtc.address;
-            return StableCoin.new("anyBTC for bStable test", "anyBTC", totalSupply)
+            return StableCoin.new("anyBTC for BStable test", "anyBTC", totalSupply)
         }).then(anyBtc => {
             anyBtcAddress = anyBtc.address;
             let stableCoins = [btcbAddress, renBtcAddress, anyBtcAddress];
             let A = 100;
-            let fee = 30000000;// 1e-10, 0.003, 0.3%
+            let fee = 10000000;// 1e-10, 0.003, 0.3%
             // let adminFee = 0;
-            let adminFee = 6666666666; // 1e-10, 0.666667, 66.67% 
-            return BStablePool.new("bstable Pool (BTCB/renBTC/anyBTC) for test", "BSLP-02", stableCoins, A, fee, adminFee);
+            let adminFee = 5000000000; // 1e-10, 0.666667, 66.67% 
+            return BStablePool.new("BStable Pool (HBTC/renBTC/anyBTC) for test", "BSLP-02", stableCoins, A, fee, adminFee, owner);
         }).then(pool => {
             p2Address = pool.address;
-            return BStableToken.new("bStable DAO Token", "BST");
-        }).then(async bst => {
-            console.log("Token's address: " + bst.address);
-            let proxy = await BStableProxy.new("bStable Pools Proxy for test", "BSPP-V1", bst.address);
+            let proxy = await BStableProxyV2.new(dev, 100, 0, 10, owner);
+            // await proxy.createWallet();
+            let bstAddress = await proxy.getTokenAddress();
+            console.log("Token's address: " + bstAddress);
             console.log("Proxy's address: " + proxy.address);
-            await proxy.addPool(p1Address, [daiAddress, busdAddress, usdtAddress], 6);
-            await proxy.addPool(p2Address, [btcbAddress, renBtcAddress, anyBtcAddress], 4);
-            await bst.setMinter(proxy.address);
-            await bst.updateMiningParameters();
+            await proxy.addPool(6, p1Address, false);
+            await proxy.addPool(4, p2Address, false);
         });
     } else {
 
