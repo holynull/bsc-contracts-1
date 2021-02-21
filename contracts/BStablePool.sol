@@ -884,4 +884,40 @@ contract BStablePool is BEP20, Ownable, ReentrancyGuard {
     function unkill_me() external onlyOwner {
         is_killed = false;
     }
+
+    function getCoins() external view returns (address[] memory) {
+        return coins;
+    }
+
+    function getBalances() external view returns (uint256[] memory) {
+        return balances;
+    }
+
+    function getFee() external view returns (uint256) {
+        return fee;
+    }
+
+    function getAdminFee() external view returns (uint256) {
+        return admin_fee;
+    }
+
+    function getInitialA() external view returns (uint256) {
+        return initial_A;
+    }
+
+    function getFutrueA() external view returns (uint256) {
+        return future_A;
+    }
+
+    function getinitialATime() external view returns (uint256) {
+        return initial_A_time;
+    }
+
+    function getFutureATime() external view returns (uint256) {
+        return future_A_time;
+    }
+
+    function getKillDeadline() external view returns (uint256) {
+        return kill_deadline;
+    }
 }
