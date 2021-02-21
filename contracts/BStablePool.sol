@@ -48,6 +48,9 @@ contract BStablePool is BEP20, Ownable, ReentrancyGuard {
     bool is_killed;
     uint256 kill_deadline;
     uint256 private KILL_DEADLINE_DT = 2 * 30 * 86400;
+
+    uint256 volume;
+
     // Events
     event TokenExchange(
         address buyer,
@@ -539,6 +542,7 @@ contract BStablePool is BEP20, Ownable, ReentrancyGuard {
         // self.balances[j] = old_balances[j] - dy - dy_admin_fee
         balances[j] = balances[j].sub(dy).sub(dy_admin_fee);
         TransferHelper.safeTransfer(coins[j], msg.sender, dy);
+        volume = volume.add(dy);
         emit TokenExchange(msg.sender, i, dx, j, dy);
     }
 
@@ -919,5 +923,9 @@ contract BStablePool is BEP20, Ownable, ReentrancyGuard {
 
     function getKillDeadline() external view returns (uint256) {
         return kill_deadline;
+    }
+
+    function getVolume() external view returns (uint256) {
+        return volume;
     }
 }
