@@ -14,7 +14,6 @@ contract BStableTokenV2 is BEP20("BStable Token", "BST"), Ownable {
 
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
     function mint(address _to, uint256 _amount) public onlyOwner {
-        require(msg.sender == minter, "only minter");
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }

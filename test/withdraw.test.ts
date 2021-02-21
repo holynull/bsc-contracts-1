@@ -49,6 +49,9 @@ contract('BStable proxy', async accounts => {
                 let delayMS = Math.floor(Math.random() * 10 * 1000);
                 await delay(delayMS);
                 let randUserId = Math.floor(Math.random() * 10);
+                if (randUserId === 0) {
+                    continue;
+                }
                 let poolIndex = Math.floor(Math.random() * 2);
                 let account = accounts[randUserId];
                 let userInfo = await proxyInstance.getUserInfo(poolIndex, account);

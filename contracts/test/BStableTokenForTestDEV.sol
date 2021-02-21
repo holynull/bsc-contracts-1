@@ -6,14 +6,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 // BStable DAO Token
 // All data's decimal is 18.
-contract BStableTokenForTest is IBStableToken, BEP20, Ownable {
+contract BStableTokenForTestDEV is IBStableToken, BEP20, Ownable {
     using SafeMath for uint256;
     address minter;
 
-    uint256 DAY = uint256(86400);
-    uint256 INITIAL_SUPPLY = uint256(3_000).mul(10**18);
-    uint256 INITIAL_RATE = uint256(30_866).mul(10**18).div(DAY.mul(2));
-    uint256 RATE_REDUCTION_TIME = DAY.mul(2);
+    uint256 HOUR = uint256(3600);
+    uint256 INITIAL_SUPPLY = uint256(300).mul(10**18);
+    uint256 INITIAL_RATE = uint256(3_087).mul(10**18).div(HOUR);
+    uint256 RATE_REDUCTION_TIME = HOUR;
     uint256 RATE_REDUCTION_COEFFICIENT = 1189207115002721024;
     uint256 INFLATION_DELAY = 86400;
 

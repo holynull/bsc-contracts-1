@@ -8,12 +8,18 @@ import {
     BStableTokenForTestDEVInstance,
     BStablePoolContract,
     BStablePoolInstance,
+    BStableTokenWalletContract,
+    BStableTokenWalletInstance,
+    AssetManagementCenterContract,
+    AssetManagementCenterInstance,
 } from '../build/types/truffle-types';
 // Load compiled artifacts
 const proxyContract: BStableProxyContract = artifacts.require('BStableProxy.sol');
 const stableCoinContract: StableCoinContract = artifacts.require('StableCoin.sol');
 const tokenContract: BStableTokenForTestDEVContract = artifacts.require('BStableTokenForTestDEV.sol');
 const poolContract: BStablePoolContract = artifacts.require('BStablePool.sol');
+const bowTokenWalletContract: BStableTokenWalletContract = artifacts.require('BStableTokenWallet.sol');
+const assetManagementCenterContract: AssetManagementCenterContract = artifacts.require('AssetManagementCenter.sol');
 import { BigNumber } from 'bignumber.js';
 import { config } from './config'
 
@@ -30,6 +36,10 @@ contract('BStable proxy', async accounts => {
     let bst: BStableTokenForTestDEVInstance;
     let p1: BStablePoolInstance;
     let p2: BStablePoolInstance;
+    let walletShare: BStableTokenWalletInstance;
+    let walletSwap: BStableTokenWalletInstance;
+    let walletStaking: BStableTokenWalletInstance;
+    let amc: AssetManagementCenterInstance;
     let denominator = new BigNumber(10).exponentiatedBy(18);
 
 
@@ -47,60 +57,95 @@ contract('BStable proxy', async accounts => {
         anyBtc = await stableCoinContract.at(p2Info[1][2]);
         let tokenAddress = await proxyInstance.getTokenAddress();
         bst = await tokenContract.at(tokenAddress);
+        let walletAddresses = await proxyInstance.getWallets();
+        walletShare = await bowTokenWalletContract.at(walletAddresses[0]);
+        walletSwap = await bowTokenWalletContract.at(walletAddresses[1]);
+        walletStaking = await bowTokenWalletContract.at(walletAddresses[2]);
+        let amcAddress = await proxyInstance.getAmcAddress();
+        amc = await assetManagementCenterContract.at(amcAddress);
         console.log('======================================================');
-        for (let i = 0; i < accounts.length; i++) {
-            console.log('accounts[ ' + i + ' ]');
-            console.log('account address: ' + accounts[i]);
-            let daiBalStr = await dai.balanceOf(accounts[i]);
-            console.log("DAI balance: " + new BigNumber(daiBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            let busdBalStr = await busd.balanceOf(accounts[i]);
-            console.log("BUSD balance: " + new BigNumber(busdBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            let usdtBalStr = await usdt.balanceOf(accounts[i]);
-            console.log("USDT balance: " + new BigNumber(usdtBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            let btcbBalStr = await btcb.balanceOf(accounts[i]);
-            console.log("BTCB balance: " + new BigNumber(btcbBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            let renBtcBalStr = await renBtc.balanceOf(accounts[i]);
-            console.log("renBTC balance: " + new BigNumber(renBtcBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            let anyBtcBalStr = await anyBtc.balanceOf(accounts[i]);
-            console.log("anyBTC balance: " + new BigNumber(anyBtcBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            let userInfo1 = await proxyInstance.getUserInfo(0, accounts[i]);
-            let userInfo2 = await proxyInstance.getUserInfo(1, accounts[i]);
-            let lp1Bal = await p1.balanceOf(accounts[i]);
-            console.log('LP1: ' + new BigNumber(lp1Bal).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            console.log('Staking LP1: ' + new BigNumber(userInfo1[0]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            let lp2Bal = await p2.balanceOf(accounts[i]);
-            console.log('LP2: ' + new BigNumber(lp2Bal).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            console.log('Staking LP2: ' + new BigNumber(userInfo2[0]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            let bstBalStr = await bst.balanceOf(accounts[i]);
-            console.log("BST balance: " + new BigNumber(bstBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            console.log("Volume Reward p1: " + new BigNumber(userInfo1[3]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            console.log("Farming Reward p1: " + new BigNumber(userInfo1[4]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            console.log("Volume Reward p2: " + new BigNumber(userInfo2[3]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            console.log("Farming Reward p2: " + new BigNumber(userInfo2[4]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-            console.log('======================================================');
-        }
-        let bstTotalSupply = await bst.totalSupply();
-        console.log('BST totalSupply: ' + new BigNumber(bstTotalSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-        let bstAvailableSupply = await bst.availableSupply();
-        console.log('BST availableSupply: ' + new BigNumber(bstAvailableSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-        let bstProxyBal = await bst.balanceOf(config.proxyAddress);
-        console.log('Proxy BST balance: ' + new BigNumber(bstProxyBal).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-        let bstRate = await bst.getRate();
-        console.log('BST rate: ' + new BigNumber(bstRate).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-        let stage = await bst.getMiningEpoch();
-        console.log('BST stage: ' + stage);
-        let startSupply = await bst.startEpochSupply();
-        console.log('BST startSupply: ' + new BigNumber(startSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
-        let startTime = await bst.startEpochTime();
-        console.log('BST start time: ' + new Date(Number(startTime) * 1000));
     });
 
 
     describe('获取用户状态数据', async () => {
 
         it('获取数据', async () => {
-
-        });
+            for (let i = 0; i < accounts.length; i++) {
+                console.log('accounts[ ' + i + ' ]');
+                console.log('account address: ' + accounts[i]);
+                let daiBalStr = await dai.balanceOf(accounts[i]);
+                console.log("DAI balance: " + new BigNumber(daiBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                let busdBalStr = await busd.balanceOf(accounts[i]);
+                console.log("BUSD balance: " + new BigNumber(busdBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                let usdtBalStr = await usdt.balanceOf(accounts[i]);
+                console.log("USDT balance: " + new BigNumber(usdtBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                let btcbBalStr = await btcb.balanceOf(accounts[i]);
+                console.log("BTCB balance: " + new BigNumber(btcbBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                let renBtcBalStr = await renBtc.balanceOf(accounts[i]);
+                console.log("renBTC balance: " + new BigNumber(renBtcBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                let anyBtcBalStr = await anyBtc.balanceOf(accounts[i]);
+                console.log("anyBTC balance: " + new BigNumber(anyBtcBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                let userInfo1 = await proxyInstance.getUserInfo(0, accounts[i]);
+                let userInfo2 = await proxyInstance.getUserInfo(1, accounts[i]);
+                let lp1Bal = await p1.balanceOf(accounts[i]);
+                console.log('LP1: ' + new BigNumber(lp1Bal).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                console.log('Staking LP1: ' + new BigNumber(userInfo1[0]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                let lp2Bal = await p2.balanceOf(accounts[i]);
+                console.log('LP2: ' + new BigNumber(lp2Bal).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                console.log('Staking LP2: ' + new BigNumber(userInfo2[0]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                let bstBalStr = await bst.balanceOf(accounts[i]);
+                console.log("BST balance: " + new BigNumber(bstBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                console.log("Volume Reward p1: " + new BigNumber(userInfo1[3]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                console.log("Farming Reward p1: " + new BigNumber(userInfo1[4]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                let pending1 = await proxyInstance.pendingReward(0, accounts[i]);
+                console.log("p1 Share pending reward: " + new BigNumber(pending1).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                console.log("Volume Reward p2: " + new BigNumber(userInfo2[3]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                console.log("Farming Reward p2: " + new BigNumber(userInfo2[4]).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                let pending2 = await proxyInstance.pendingReward(1, accounts[i]);
+                console.log("p2 Share pending reward: " + new BigNumber(pending2).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                console.log('======================================================');
+            }
+            let bstTotalSupply = await bst.totalSupply();
+            console.log('BST totalSupply: ' + new BigNumber(bstTotalSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            let bstAvailableSupply = await bst.availableSupply();
+            console.log('BST availableSupply: ' + new BigNumber(bstAvailableSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            let shareBSTBalStr = await bst.balanceOf(walletShare.address);
+            console.log('Share reward BST balance: ' + new BigNumber(shareBSTBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            let swapBSTBalStr = await bst.balanceOf(walletSwap.address);
+            console.log('Swap reward BST balance: ' + new BigNumber(swapBSTBalStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            let stakingLPBalStr1 = await p1.balanceOf(walletStaking.address);
+            console.log('Staking p1\'s LP: ' + new BigNumber(stakingLPBalStr1).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            let stakingLPBalStr2 = await p2.balanceOf(walletStaking.address);
+            console.log('Staking p2\'s LP: ' + new BigNumber(stakingLPBalStr2).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            let bstRate = await bst.getRate();
+            console.log('BST rate: ' + new BigNumber(bstRate).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            let stage = await bst.getMiningEpoch();
+            console.log('BST stage: ' + stage);
+            let startSupply = await bst.startEpochSupply();
+            console.log('BST startSupply: ' + new BigNumber(startSupply).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            let bowLockedAmtStr = await bst.balanceOf(amc.address);
+            console.log('Token locked: ' + new BigNumber(bowLockedAmtStr).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+            let devAmtStr = await bst.balanceOf(accounts[0]);
+            console.log('Token dev get: ' + new BigNumber(devAmtStr).div(denominator).minus(300).toFormat(18, BigNumber.ROUND_DOWN))
+            let startTime = await bst.startEpochTime();
+            console.log('BST start time: ' + new Date(Number(startTime) * 1000));
+            let p1AdminFee_0 = await p1.admin_balances(0);
+            console.log("P1 admin fee 0: " + new BigNumber(p1AdminFee_0).div(denominator).toFormat(4, 1));
+            let p1AdminFee_1 = await p1.admin_balances(1);
+            console.log("P1 admin fee 1: " + new BigNumber(p1AdminFee_1).div(denominator).toFormat(4, 1));
+            let p1AdminFee_2 = await p1.admin_balances(2);
+            console.log("P1 admin fee 2: " + new BigNumber(p1AdminFee_2).div(denominator).toFormat(4, 1));
+            console.log('======================================================');
+            console.log('Pool1: ' + p1.address);
+            console.log('dai: ' + dai.address);
+            console.log('xusd: ' + busd.address);
+            console.log('usdt: ' + usdt.address);
+            console.log('Pool2: ' + p2.address);
+            console.log('renBtc: ' + renBtc.address);
+            console.log('xbtc: ' + btcb.address);
+            console.log('anyBtc: ' + anyBtc.address);
+            console.log('Token address: ' + bst.address);
+        }).timeout(3600 * 1000);
 
     });
 

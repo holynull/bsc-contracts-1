@@ -2,9 +2,12 @@ const BStablePool = artifacts.require("BStablePool");
 const StableCoin = artifacts.require("StableCoin");
 const BStableProxyV2 = artifacts.require("BStableProxyV2");
 const BStableTokenV2 = artifacts.require("BStableTokenV2");
-const config = require('./config');
+const config = {
+    // owner: '',
+    // dev: ''
+};
 
-module.exports = async function (deployer) {
+module.exports = async function (deployer, network, accounts) {
     let owner;
     let dev;
     if (config && config.owner) {
@@ -27,7 +30,9 @@ module.exports = async function (deployer) {
     } else if (deployer.network_id == 1) { // main net
     } else if (deployer.network_id == 42) { // kovan
     } else if (deployer.network_id == 56) { // bsc main net
-    } else if (deployer.network_id == 256 || deployer.network_id == 5777) { //heco test net
+    } else if (deployer.network_id == 5777) { //dev
+
+
         let daiAddress;
         let busdAddress;
         let usdtAddress;
@@ -58,7 +63,7 @@ module.exports = async function (deployer) {
         }).then(pool => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
             p1Address = pool.address;
-            return StableCoin.new("HBTC for BStable test", "HBTC", totalSupply);
+            return StableCoin.new("BTCB for BStable test", "HBTC", totalSupply);
         }).then(btcb => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
             btcbAddress = btcb.address;
@@ -74,23 +79,19 @@ module.exports = async function (deployer) {
             let fee = 10000000;// 1e-10, 0.003, 0.3%
             // let adminFee = 0;
             let adminFee = 5000000000; // 1e-10, 0.666667, 66.67% 
-            return BStablePool.new("BStable Pool (HBTC/renBTC/anyBTC) for test", "BSLP-02", stableCoins, A, fee, adminFee, owner);
-        }).then(pool => {
+            return BStablePool.new("BStable Pool (BTCB/renBTC/anyBTC) for test", "BSLP-02", stableCoins, A, fee, adminFee, owner);
+        }).then(async pool => {
             p2Address = pool.address;
             let proxy = await BStableProxyV2.new(dev, 100, 0, 10, owner);
             // await proxy.createWallet();
             let bstAddress = await proxy.getTokenAddress();
             console.log("Token's address: " + bstAddress);
             console.log("Proxy's address: " + proxy.address);
-            await proxy.addPool(6, p1Address, false);
-            await proxy.addPool(4, p2Address, false);
+            await proxy.add(6, p1Address, false);
+            await proxy.add(4, p2Address, false);
         });
     } else {
 
     }
 
-    // deployer.deploy(factory).then(() => {
-    // });
-    // deployer.deploy(exchange).then(() => {
-    // });
 };

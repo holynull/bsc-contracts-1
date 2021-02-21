@@ -36,7 +36,7 @@ contract('BStable proxy', async accounts => {
     });
 
 
-    describe('测试锁定LP', async () => {
+    describe('测试紧急提取LP', async () => {
 
         it('每个用户随机锁定LP', async () => {
             let sta = new Date().getTime();
@@ -54,13 +54,10 @@ contract('BStable proxy', async accounts => {
                 }
                 let poolIndex = Math.floor(Math.random() * 2);
                 let account = accounts[randUserId];
-                let lpBalStr = await pools[poolIndex].balanceOf(account);
-                let randPercent = Math.floor(Math.random() * 100);
-                let amt = new BigNumber(lpBalStr).multipliedBy(randPercent).div(100).toFixed(0, BigNumber.ROUND_DOWN);
-                await proxyInstance.deposit(poolIndex, amt, { from: account }).catch(e => {
+                await proxyInstance.emergencyWithdraw(poolIndex, { from: account }).catch(e => {
                     console.log(e);
                 });
-                console.log("accounts[" + account + "] deposit LP to P" + (poolIndex + 1) + ": " + new BigNumber(amt).div(denominator).toFormat(18, BigNumber.ROUND_DOWN));
+                console.log('accounts[' + account + '] emergency withdraw LP from P' + (poolIndex + 1));
             }
         }).timeout(84600 * 1000);
     });
