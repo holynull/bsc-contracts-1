@@ -21,8 +21,11 @@ contract AssetManagementCenter is BEP20, Ownable, ReentrancyGuard {
 
     mapping(address => Asset) locks;
 
-    constructor() public BEP20("BOW Asset Management Center", "BAMC-V1") {
-        transferOwnership(msg.sender);
+    constructor(address ownerAddress)
+        public
+        BEP20("BOW Asset Management Center", "BAMC-V1")
+    {
+        transferOwnership(ownerAddress);
     }
 
     function addAsset(

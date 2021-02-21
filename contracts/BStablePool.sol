@@ -112,9 +112,10 @@ contract BStablePool is BEP20, Ownable, ReentrancyGuard {
         address[] memory _coins,
         uint256 _A,
         uint256 _fee,
-        uint256 _admin_fee
+        uint256 _admin_fee,
+        address ownerAddress
     ) public BEP20(_name, _symbol) {
-        transferOwnership(msg.sender);
+        transferOwnership(ownerAddress);
         for (uint256 i = 0; i < _coins.length; i++) {
             require(_coins[i] != address(0), "BNB is not support.");
         }

@@ -72,13 +72,14 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         string memory _name,
         string memory _symbol,
         address _tokenAddress,
-        address _amcAddress
+        address _amcAddress,
+        address ownerAddress
     ) public BEP20(_name, _symbol) {
-        transferOwnership(msg.sender);
         tokenAddress = _tokenAddress;
         createWallet();
         devAddress = msg.sender;
         amcAddress = _amcAddress;
+        transferOwnership(ownerAddress);
     }
 
     function getDevAddress() public view returns (address) {
@@ -99,16 +100,19 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         walletShare = new BStableTokenWallet(
             "BStable Token Wallet for LP farming reward",
             "BTWL",
+            address(this),
             address(this)
         );
         walletSwap = new BStableTokenWallet(
             "BStable Token Wallet for LP swap reward",
             "BTWS",
+            address(this),
             address(this)
         );
         walletLPStaking = new BStableTokenWallet(
             "BStable Token Wallet for LP staking",
             "BTWLP",
+            address(this),
             address(this)
         );
     }
@@ -370,8 +374,14 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         uint256 rewardSwap = rewardTotal.mul(pool.swapRewardRate).div(10**18);
         IBStableToken(tokenAddress).mint(devAddress, devAmt.sub(1));
         IBStableToken(tokenAddress).mint(amcAddress, amcAmt.sub(1));
-        IBStableToken(tokenAddress).mint(address(walletShare), rewardShare.sub(1));
-        IBStableToken(tokenAddress).mint(address(walletSwap), rewardSwap.sub(1));
+        IBStableToken(tokenAddress).mint(
+            address(walletShare),
+            rewardShare.sub(1)
+        );
+        IBStableToken(tokenAddress).mint(
+            address(walletSwap),
+            rewardSwap.sub(1)
+        );
         pool.accTokenPerShare = pool.accTokenPerShare.add(
             rewardShare.mul(10**18).div(lpSupply)
         );

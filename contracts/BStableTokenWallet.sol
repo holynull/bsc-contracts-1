@@ -16,9 +16,10 @@ contract BStableTokenWallet is BEP20, Ownable {
     constructor(
         string memory _name,
         string memory _symbol,
-        address _proxyAddress
+        address _proxyAddress,
+        address ownerAddress
     ) public BEP20(_name, _symbol) {
-        transferOwnership(msg.sender);
+        transferOwnership(ownerAddress);
         proxyAddress = _proxyAddress;
     }
 

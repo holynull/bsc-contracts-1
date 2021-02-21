@@ -27,11 +27,12 @@ contract BStableToken is IBStableToken, BEP20, Ownable {
 
     event SetMinter(address minter);
 
-    constructor(string memory _name, string memory _symbol)
-        public
-        BEP20(_name, _symbol)
-    {
-        transferOwnership(msg.sender);
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        address ownerAddress
+    ) public BEP20(_name, _symbol) {
+        transferOwnership(ownerAddress);
         _mint(msg.sender, INITIAL_SUPPLY);
         start_epoch_time = block.timestamp.add(INFLATION_DELAY).sub(
             RATE_REDUCTION_TIME
@@ -60,19 +61,19 @@ contract BStableToken is IBStableToken, BEP20, Ownable {
     function _updateMiningParameters() internal {
         uint256 _rate = rate;
         uint256 _start_epoch_supply = start_epoch_supply;
-            start_epoch_time = start_epoch_time.add(RATE_REDUCTION_TIME);
-            mining_epoch = mining_epoch + 1;
+        start_epoch_time = start_epoch_time.add(RATE_REDUCTION_TIME);
+        mining_epoch = mining_epoch + 1;
 
-            if (_rate == 0) {
-                _rate = INITIAL_RATE;
-            } else {
-                _start_epoch_supply = _start_epoch_supply.add(
-                    _rate.mul(RATE_REDUCTION_TIME)
-                );
-                start_epoch_supply = _start_epoch_supply;
-                _rate = _rate.mul(10**18).div(RATE_REDUCTION_COEFFICIENT);
-            }
-            rate = _rate;
+        if (_rate == 0) {
+            _rate = INITIAL_RATE;
+        } else {
+            _start_epoch_supply = _start_epoch_supply.add(
+                _rate.mul(RATE_REDUCTION_TIME)
+            );
+            start_epoch_supply = _start_epoch_supply;
+            _rate = _rate.mul(10**18).div(RATE_REDUCTION_COEFFICIENT);
+        }
+        rate = _rate;
 
         emit UpdateMiningParameters(
             block.timestamp,
