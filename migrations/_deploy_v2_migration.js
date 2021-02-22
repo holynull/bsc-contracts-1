@@ -82,7 +82,8 @@ module.exports = async function (deployer, network, accounts) {
             return BStablePool.new("BStable Pool (BTCB/renBTC/anyBTC) for test", "BSLP-02", stableCoins, A, fee, adminFee, owner);
         }).then(async pool => {
             p2Address = pool.address;
-            let proxy = await BStableProxyV2.new(dev, 100, 0, 10, owner);
+            let tokenPerBlock=web3.utils.toWei('100','ether');
+            let proxy = await BStableProxyV2.new(dev, tokenPerBlock, 0, 2000, owner);
             // await proxy.createWallet();
             let bstAddress = await proxy.getTokenAddress();
             console.log("Token's address: " + bstAddress);

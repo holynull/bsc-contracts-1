@@ -3,6 +3,7 @@
 pragma solidity ^0.6.0;
 
 import "./interfaces/IBEP20.sol";
+import "./interfaces/IBStablePool.sol";
 import "./lib/SafeBEP20.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -53,17 +54,16 @@ contract BStableProxyV2 is Ownable {
         IBEP20 lpToken; // Address of LP token contract.
         uint256 allocPoint; // How many allocation points assigned to this pool. SUSHIs to distribute per block.
         uint256 lastRewardBlock; // Last block number that SUSHIs distribution occurs.
-        uint256 accSushiPerShare; // Accumulated SUSHIs per share, times 1e12. See below.
+        uint256 accTokenPerShare; // Accumulated SUSHIs per share, times 1e12. See below.
     }
-    // The SUSHI TOKEN!
-    BStableTokenV2 public sushi;
+    BStableTokenV2 public token;
     // Dev address.
     address public devaddr;
     // Block number when bonus SUSHI period ends.
     uint256 public bonusEndBlock;
     // SUSHI tokens created per block.
-    uint256 public sushiPerBlock;
-    // Bonus muliplier for early sushi makers.
+    uint256 public tokenPerBlock;
+    // Bonus muliplier for early token makers.
     uint256 public constant BONUS_MULTIPLIER = 10;
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     // IMigratorChef public migrator;
@@ -85,14 +85,14 @@ contract BStableProxyV2 is Ownable {
 
     constructor(
         address _devaddr,
-        uint256 _sushiPerBlock,
+        uint256 _tokenPerBlock,
         uint256 _startBlock,
         uint256 _bonusEndBlock,
         address ownerAddress
     ) public {
-        sushi = new BStableTokenV2();
+        token = new BStableTokenV2();
         devaddr = _devaddr;
-        sushiPerBlock = _sushiPerBlock;
+        tokenPerBlock = _tokenPerBlock;
         bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
         transferOwnership(ownerAddress);
@@ -120,7 +120,7 @@ contract BStableProxyV2 is Ownable {
                 lpToken: _lpToken,
                 allocPoint: _allocPoint,
                 lastRewardBlock: lastRewardBlock,
-                accSushiPerShare: 0
+                accTokenPerShare: 0
             })
         );
     }
@@ -176,27 +176,27 @@ contract BStableProxyV2 is Ownable {
     }
 
     // View function to see pending SUSHIs on frontend.
-    function pendingSushi(uint256 _pid, address _user)
+    function pendingReward(uint256 _pid, address _user)
         external
         view
         returns (uint256)
     {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accSushiPerShare = pool.accSushiPerShare;
+        uint256 accTokenPerShare = pool.accTokenPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier =
                 getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 sushiReward =
-                multiplier.mul(sushiPerBlock).mul(pool.allocPoint).div(
+            uint256 tokenReward =
+                multiplier.mul(tokenPerBlock).mul(pool.allocPoint).div(
                     totalAllocPoint
                 );
-            accSushiPerShare = accSushiPerShare.add(
-                sushiReward.mul(1e12).div(lpSupply)
+            accTokenPerShare = accTokenPerShare.add(
+                tokenReward.mul(1e12).div(lpSupply)
             );
         }
-        return user.amount.mul(accSushiPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accTokenPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward vairables for all pools. Be careful of gas spending!
@@ -219,14 +219,14 @@ contract BStableProxyV2 is Ownable {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 sushiReward =
-            multiplier.mul(sushiPerBlock).mul(pool.allocPoint).div(
+        uint256 tokenReward =
+            multiplier.mul(tokenPerBlock).mul(pool.allocPoint).div(
                 totalAllocPoint
             );
-        sushi.mint(devaddr, sushiReward.div(10));
-        sushi.mint(address(this), sushiReward);
-        pool.accSushiPerShare = pool.accSushiPerShare.add(
-            sushiReward.mul(1e12).div(lpSupply)
+        token.mint(devaddr, tokenReward.div(10));
+        token.mint(address(this), tokenReward);
+        pool.accTokenPerShare = pool.accTokenPerShare.add(
+            tokenReward.mul(1e12).div(lpSupply)
         );
         pool.lastRewardBlock = block.number;
     }
@@ -238,10 +238,10 @@ contract BStableProxyV2 is Ownable {
         updatePool(_pid);
         if (user.amount > 0) {
             uint256 pending =
-                user.amount.mul(pool.accSushiPerShare).div(1e12).sub(
+                user.amount.mul(pool.accTokenPerShare).div(1e12).sub(
                     user.rewardDebt
                 );
-            safeSushiTransfer(msg.sender, pending);
+            safeTokenTransfer(msg.sender, pending);
         }
         pool.lpToken.safeTransferFrom(
             address(msg.sender),
@@ -249,7 +249,7 @@ contract BStableProxyV2 is Ownable {
             _amount
         );
         user.amount = user.amount.add(_amount);
-        user.rewardDebt = user.amount.mul(pool.accSushiPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accTokenPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -260,12 +260,12 @@ contract BStableProxyV2 is Ownable {
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
         uint256 pending =
-            user.amount.mul(pool.accSushiPerShare).div(1e12).sub(
+            user.amount.mul(pool.accTokenPerShare).div(1e12).sub(
                 user.rewardDebt
             );
-        safeSushiTransfer(msg.sender, pending);
+        safeTokenTransfer(msg.sender, pending);
         user.amount = user.amount.sub(_amount);
-        user.rewardDebt = user.amount.mul(pool.accSushiPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accTokenPerShare).div(1e12);
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
         emit Withdraw(msg.sender, _pid, _amount);
     }
@@ -280,13 +280,13 @@ contract BStableProxyV2 is Ownable {
         user.rewardDebt = 0;
     }
 
-    // Safe sushi transfer function, just in case if rounding error causes pool to not have enough SUSHIs.
-    function safeSushiTransfer(address _to, uint256 _amount) internal {
-        uint256 sushiBal = sushi.balanceOf(address(this));
-        if (_amount > sushiBal) {
-            sushi.transfer(_to, sushiBal);
+    // Safe token transfer function, just in case if rounding error causes pool to not have enough SUSHIs.
+    function safeTokenTransfer(address _to, uint256 _amount) internal {
+        uint256 tokenBal = token.balanceOf(address(this));
+        if (_amount > tokenBal) {
+            token.transfer(_to, tokenBal);
         } else {
-            sushi.transfer(_to, _amount);
+            token.transfer(_to, _amount);
         }
     }
 
@@ -297,6 +297,36 @@ contract BStableProxyV2 is Ownable {
     }
 
     function getTokenAddress() external view returns (address) {
-        return address(sushi);
+        return address(token);
+    }
+
+    function getPoolInfo(uint256 _pid)
+        public
+        view
+        returns (
+            address _poolAddress,
+            address[] memory _coins,
+            uint256 _allocPoint,
+            uint256 _accTokenPerShare,
+            uint256 _lastRewardBlock
+        )
+    {
+        _poolAddress = address(poolInfo[_pid].lpToken);
+        _coins = IBStablePool(_poolAddress).getCoins();
+        _allocPoint = poolInfo[_pid].allocPoint;
+        _accTokenPerShare = poolInfo[_pid].accTokenPerShare;
+        _lastRewardBlock = poolInfo[_pid].lastRewardBlock;
+    }
+
+    function getUserInfo(uint256 _pid, address user)
+        public
+        view
+        returns (
+            uint256 _amount,
+            uint256 _rewardDebt
+        )
+    {
+        _amount = userInfo[_pid][user].amount;
+        _rewardDebt = userInfo[_pid][user].rewardDebt;
     }
 }
