@@ -133,6 +133,15 @@ contract('BStable proxy', async accounts => {
             let p2APY = new BigNumber(1).plus(p2InterestRate.div(365)).exponentiatedBy(365).minus(1);
             console.log('Pool1 APY: ' + p1APY.toFormat(4, 1));
             console.log('Pool2 APY: ' + p2APY.toFormat(4, 1));
+            let devAddress = await proxyInstance.getDevAddress();
+            console.log('Dev address: ' + devAddress);
+            let startBlock = await proxyInstance.getStartBlock();
+            console.log('Start Block: ' + startBlock);
+            let bonusEndBlock = await proxyInstance.getBonusEndBlock();
+            console.log('Bonus End Block: ' + bonusEndBlock);
+            let tokenPerBlockStr = await proxyInstance.getTokenPerBlock();
+            let tokenPerBlock = new BigNumber(tokenPerBlockStr).div(denominator);
+            console.log('Token per Block: ' + tokenPerBlock.toFormat(2, 1));
             console.log('======================================================');
             console.log('Pool1: ' + p1.address);
             console.log('dai: ' + dai.address);

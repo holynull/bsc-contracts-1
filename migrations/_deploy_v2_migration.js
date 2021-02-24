@@ -55,10 +55,9 @@ module.exports = async function (deployer, network, accounts) {
         }).then(usdt => {
             usdtAddress = usdt.address;
             let stableCoins = [daiAddress, busdAddress, usdtAddress];
-            let A = 100;
-            let fee = 10000000;// 1e-10, 0.003, 0.3%
-            // let adminFee = 0;
-            let adminFee = 5000000000; // 1e-10, 0.666667, 66.67% 
+            let A = 200;
+            let fee = web3.utils.toWei('0.001', 'ether');
+            let adminFee = web3.utils.toWei('0.5', 'ether');
             return BStablePool.new("BStable Pool (bstableDAI/bstableHUSD/bstableUSDT) for test", "BSLP-01", stableCoins, A, fee, adminFee, owner);
         }).then(pool => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
@@ -75,15 +74,17 @@ module.exports = async function (deployer, network, accounts) {
         }).then(anyBtc => {
             anyBtcAddress = anyBtc.address;
             let stableCoins = [btcbAddress, renBtcAddress, anyBtcAddress];
-            let A = 100;
-            let fee = 10000000;// 1e-10, 0.003, 0.3%
-            // let adminFee = 0;
-            let adminFee = 5000000000; // 1e-10, 0.666667, 66.67% 
+            let A = 200;
+            let fee = web3.utils.toWei('0.001', 'ether');
+            let adminFee = web3.utils.toWei('0.5', 'ether');
             return BStablePool.new("BStable Pool (BTCB/renBTC/anyBTC) for test", "BSLP-02", stableCoins, A, fee, adminFee, owner);
         }).then(async pool => {
             p2Address = pool.address;
-            let tokenPerBlock=web3.utils.toWei('100','ether');
-            let proxy = await BStableProxyV2.new(dev, tokenPerBlock, 0, 2000, owner);
+            let latestBlock = await web3.eth.getBlock('latest');
+            let tokenPerBlock = web3.utils.toWei('20', 'ether');
+            let startBlock = latestBlock.number + 10;
+            let bonusEndBlock = startBlock + 28800; // one day, 1 block/3 sec
+            let proxy = await BStableProxyV2.new(dev, tokenPerBlock, startBlock, bonusEndBlock, owner);
             // await proxy.createWallet();
             let bstAddress = await proxy.getTokenAddress();
             console.log("Token's address: " + bstAddress);
