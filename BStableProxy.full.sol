@@ -865,6 +865,72 @@ contract BEP20 is Context, IBEP20 {
     ) internal virtual {}
 }
 
+// File: contracts/lib/TransferHelper.sol
+
+pragma solidity >=0.6.0;
+
+// helper mBNBods for interacting with BEP20 tokens and sending BNB that do not consistently return true/false
+library TransferHelper {
+    function safeApprove(address token, address to, uint value) internal {
+        // bytes4(keccak256(bytes('approve(address,uint256)')));
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x095ea7b3, to, value));
+        require(success && (data.length == 0 || abi.decode(data, (bool))), 'TransferHelper: APPROVE_FAILED');
+    }
+
+    function safeTransfer(address token, address to, uint value) internal {
+        // bytes4(keccak256(bytes('transfer(address,uint256)')));
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0xa9059cbb, to, value));
+        require(success && (data.length == 0 || abi.decode(data, (bool))), 'TransferHelper: TRANSFER_FAILED');
+    }
+
+    function safeTransferFrom(address token, address from, address to, uint value) internal {
+        // bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x23b872dd, from, to, value));
+        require(success && (data.length == 0 || abi.decode(data, (bool))), 'TransferHelper: TRANSFER_FROM_FAILED');
+    }
+
+    function safeTransferBNB(address to, uint value) internal {
+        (bool success,) = to.call{value:value}(new bytes(0));
+        require(success, 'TransferHelper: BNB_TRANSFER_FAILED');
+    }
+}
+
+// File: contracts/BStableTokenWallet.sol
+
+pragma solidity ^0.6.0;
+
+
+
+
+// BStable DAO Token Wallet
+// All data's decimal is 18.
+contract BStableTokenWallet is BEP20, Ownable {
+    using SafeMath for uint256;
+
+    address proxyAddress;
+
+    event ApproveToProxy(address tokenAddress, address spender, uint256 amt);
+
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        address _proxyAddress,
+        address ownerAddress
+    ) public BEP20(_name, _symbol) {
+        transferOwnership(ownerAddress);
+        proxyAddress = _proxyAddress;
+    }
+
+    function approveTokenToProxy(address tokenAddress, uint256 amt)
+        public
+        onlyOwner
+    {
+        require(msg.sender == proxyAddress, "only proxy can do this");
+        TransferHelper.safeApprove(tokenAddress, proxyAddress, amt);
+        emit ApproveToProxy(tokenAddress, proxyAddress, amt);
+    }
+}
+
 // File: contracts/interfaces/IBStablePool.sol
 
 pragma solidity ^0.6.0;
@@ -946,11 +1012,32 @@ interface IBStablePool is IBEP20 {
     function transferOwnership(address newOwner) external;
 
     function owner() external view returns (address _owner);
+
+    function getCoins() external view returns (address[] memory);
+
+    function getBalances() external view returns (uint256[] memory);
+
+    function getFee() external view returns (uint256);
+
+    function getAdminFee() external view returns (uint256);
+
+    function getInitialA() external view returns (uint256);
+
+    function getFutrueA() external view returns (uint256);
+
+    function getinitialATime() external view returns (uint256);
+
+    function getFutureATime() external view returns (uint256);
+
+    function getKillDeadline() external view returns (uint256);
+
+    function getVolume() external view returns (uint256);
 }
 
 // File: contracts/interfaces/IBStableProxy.sol
 
 pragma solidity ^0.6.0;
+
 
 
 interface IBStableProxy is IBEP20 {
@@ -999,6 +1086,15 @@ interface IBStableProxy is IBEP20 {
     function transferMinterTo(address to) external;
 
     function approveTokenTo(address nMinter) external;
+
+    function getWallets()
+        external
+        view
+        returns (
+            BStableTokenWallet walletShare,
+            BStableTokenWallet walletSwap,
+            BStableTokenWallet walletLPStaking
+        );
 }
 
 // File: contracts/interfaces/IBStableToken.sol
@@ -1081,39 +1177,10 @@ contract ReentrancyGuard {
     }
 }
 
-// File: contracts/lib/TransferHelper.sol
-
-pragma solidity >=0.6.0;
-
-// helper mBNBods for interacting with BEP20 tokens and sending BNB that do not consistently return true/false
-library TransferHelper {
-    function safeApprove(address token, address to, uint value) internal {
-        // bytes4(keccak256(bytes('approve(address,uint256)')));
-        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x095ea7b3, to, value));
-        require(success && (data.length == 0 || abi.decode(data, (bool))), 'TransferHelper: APPROVE_FAILED');
-    }
-
-    function safeTransfer(address token, address to, uint value) internal {
-        // bytes4(keccak256(bytes('transfer(address,uint256)')));
-        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0xa9059cbb, to, value));
-        require(success && (data.length == 0 || abi.decode(data, (bool))), 'TransferHelper: TRANSFER_FAILED');
-    }
-
-    function safeTransferFrom(address token, address from, address to, uint value) internal {
-        // bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
-        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x23b872dd, from, to, value));
-        require(success && (data.length == 0 || abi.decode(data, (bool))), 'TransferHelper: TRANSFER_FROM_FAILED');
-    }
-
-    function safeTransferBNB(address to, uint value) internal {
-        (bool success,) = to.call{value:value}(new bytes(0));
-        require(success, 'TransferHelper: BNB_TRANSFER_FAILED');
-    }
-}
-
 // File: contracts/BStableProxy.sol
 
 pragma solidity ^0.6.0;
+
 
 
 
@@ -1165,6 +1232,17 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
     bool _openMigration = false;
     address migrateFrom;
 
+    BStableTokenWallet walletShare;
+    BStableTokenWallet walletSwap;
+    BStableTokenWallet walletLPStaking;
+
+    address devAddress;
+    address amcAddress;
+    uint256 devPoints = 10;
+    uint256 amcPoints = 15;
+    uint256 communityPoints = 72;
+    uint256 mintTotalPoints = 97;
+
     modifier noOpenMigration() {
         require(!_openMigration, "a migration is open.");
         _;
@@ -1173,10 +1251,63 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
     constructor(
         string memory _name,
         string memory _symbol,
-        address _tokenAddress
+        address _tokenAddress,
+        address _amcAddress,
+        address ownerAddress
     ) public BEP20(_name, _symbol) {
-        transferOwnership(msg.sender);
         tokenAddress = _tokenAddress;
+        createWallet();
+        devAddress = msg.sender;
+        amcAddress = _amcAddress;
+        transferOwnership(ownerAddress);
+    }
+
+    function getDevAddress() public view returns (address) {
+        return devAddress;
+    }
+
+    function getAmcAddress() public view returns (address) {
+        return amcAddress;
+    }
+
+    function createWallet() internal {
+        require(
+            address(walletShare) == address(0) &&
+                address(walletSwap) == address(0) &&
+                address(walletLPStaking) == address(0),
+            "wallet not empty"
+        );
+        walletShare = new BStableTokenWallet(
+            "BStable Token Wallet for LP farming reward",
+            "BTWL",
+            address(this),
+            address(this)
+        );
+        walletSwap = new BStableTokenWallet(
+            "BStable Token Wallet for LP swap reward",
+            "BTWS",
+            address(this),
+            address(this)
+        );
+        walletLPStaking = new BStableTokenWallet(
+            "BStable Token Wallet for LP staking",
+            "BTWLP",
+            address(this),
+            address(this)
+        );
+    }
+
+    function getWallets()
+        public
+        view
+        override
+        returns (
+            BStableTokenWallet wsAddress,
+            BStableTokenWallet weAddress,
+            BStableTokenWallet wstakingAddress
+        )
+    {
+        return (walletLPStaking, walletSwap, walletLPStaking);
     }
 
     function getPoolInfo(uint256 _pid)
@@ -1284,50 +1415,66 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         if (!exists) {
             poolUsers[_pid].push(msg.sender);
         }
-        updatePoolForExchange(_pid);
+        updatePool(_pid);
+        uint256 bali = IBEP20(pools[_pid].coins[i]).balanceOf(address(this));
         TransferHelper.safeTransferFrom(
             pools[_pid].coins[i],
             msg.sender,
             address(this),
             dx
         );
+        dx = IBEP20(pools[_pid].coins[i]).balanceOf(address(this)).sub(bali);
         TransferHelper.safeApprove(
             pools[_pid].coins[i],
             pools[_pid].poolAddress,
             dx
         );
+        uint256 balj = IBEP20(pools[_pid].coins[j]).balanceOf(address(this));
         IBStablePool(pools[_pid].poolAddress).exchange(i, j, dx, min_dy);
-        uint256 dy = IBEP20(pools[_pid].coins[j]).balanceOf(address(this));
+        uint256 dy =
+            IBEP20(pools[_pid].coins[j]).balanceOf(address(this)).sub(balj);
         require(dy > 0, "no coin out");
         userInfo[_pid][msg.sender].volume = userInfo[_pid][msg.sender]
             .volume
             .add(dy.mul(dy).div(dx));
         require(dy.mul(dy).div(dx) > 0, "accumulate points is 0");
-        uint256 tokenAmt =
-            IBEP20(tokenAddress)
-                .balanceOf(address(this))
-                .mul(pools[_pid].swapRewardRate)
-                .div(10**18);
-        uint256 rewardAmt =
-            pools[_pid]
-                .totalVolReward
-                .add(tokenAmt)
-                .mul(dy.mul(dy).div(dx))
-                .div(dy.mul(dy).div(dx).add(pools[_pid].totalVolAccPoints));
+        uint256 tokenAmt = IBEP20(tokenAddress).balanceOf(address(walletSwap));
+        uint256 rewardAmt;
+        if (
+            pools[_pid].totalVolAccPoints > 0 && pools[_pid].totalVolReward > 0
+        ) {
+            rewardAmt = pools[_pid].totalVolReward.mul(dy.mul(dy).div(dx)).div(
+                pools[_pid].totalVolAccPoints
+            );
+        } else {
+            rewardAmt = tokenAmt.div(10);
+        }
         if (rewardAmt > tokenAmt) {
             userInfo[_pid][msg.sender].volReward = userInfo[_pid][msg.sender]
                 .volReward
                 .add(tokenAmt);
-            TransferHelper.safeTransfer(tokenAddress, msg.sender, tokenAmt);
             pools[_pid].totalVolReward = pools[_pid].totalVolReward.add(
+                tokenAmt
+            );
+            walletSwap.approveTokenToProxy(tokenAddress, tokenAmt);
+            TransferHelper.safeTransferFrom(
+                tokenAddress,
+                address(walletSwap),
+                msg.sender,
                 tokenAmt
             );
         } else {
             userInfo[_pid][msg.sender].volReward = userInfo[_pid][msg.sender]
                 .volReward
                 .add(rewardAmt);
-            TransferHelper.safeTransfer(tokenAddress, msg.sender, rewardAmt);
             pools[_pid].totalVolReward = pools[_pid].totalVolReward.add(
+                rewardAmt
+            );
+            walletSwap.approveTokenToProxy(tokenAddress, rewardAmt);
+            TransferHelper.safeTransferFrom(
+                tokenAddress,
+                address(walletSwap),
+                msg.sender,
                 rewardAmt
             );
         }
@@ -1355,7 +1502,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         PoolInfo storage pool = pools[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accSushiPerShare = pool.accTokenPerShare;
-        uint256 lpSupply = IBEP20(pool.poolAddress).balanceOf(address(this));
+        uint256 lpSupply =
+            IBEP20(pool.poolAddress).balanceOf(address(walletLPStaking));
         if (lpSupply != 0) {
             uint256 releaseAmt =
                 IBStableToken(tokenAddress).availableSupply().sub(
@@ -1371,8 +1519,9 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
                 reward.mul(10**18).div(lpSupply)
             );
         }
-        return
+        uint256 pending =
             user.amount.mul(accSushiPerShare).div(10**18).sub(user.rewardDebt);
+        return pending;
     }
 
     function massUpdatePools() external noOpenMigration {
@@ -1387,7 +1536,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         if (block.timestamp <= pool.lastUpdateTime) {
             return;
         }
-        uint256 lpSupply = IBEP20(pool.poolAddress).balanceOf(address(this));
+        uint256 lpSupply =
+            IBEP20(pool.poolAddress).balanceOf(address(walletLPStaking));
         if (lpSupply == 0) {
             pool.lastUpdateTime = block.timestamp;
             return;
@@ -1397,32 +1547,24 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
                 IBStableToken(tokenAddress).totalSupply()
             );
         uint256 mintAmt = releaseAmt.mul(pool.allocPoint).div(totalAllocPoint);
-        uint256 reward = mintAmt.mul(pool.shareRewardRate).div(10**18);
-        IBStableToken(tokenAddress).mint(address(this), mintAmt);
-        pool.accTokenPerShare = pool.accTokenPerShare.add(
-            reward.mul(10**18).div(lpSupply)
+        uint256 rewardTotal = mintAmt.mul(communityPoints).div(mintTotalPoints);
+        uint256 devAmt = mintAmt.mul(devPoints).div(mintTotalPoints);
+        uint256 amcAmt = mintAmt.mul(amcPoints).div(mintTotalPoints);
+        uint256 rewardShare = rewardTotal.mul(pool.shareRewardRate).div(10**18);
+        uint256 rewardSwap = rewardTotal.mul(pool.swapRewardRate).div(10**18);
+        IBStableToken(tokenAddress).mint(devAddress, devAmt.sub(1));
+        IBStableToken(tokenAddress).mint(amcAddress, amcAmt.sub(1));
+        IBStableToken(tokenAddress).mint(
+            address(walletShare),
+            rewardShare.sub(1)
         );
-        pool.lastUpdateTime = block.timestamp;
-    }
-
-    function updatePoolForExchange(uint256 _pid) public noOpenMigration {
-        PoolInfo storage pool = pools[_pid];
-        if (block.timestamp <= pool.lastUpdateTime) {
-            return;
-        }
-        uint256 releaseAmt =
-            IBStableToken(tokenAddress).availableSupply().sub(
-                IBStableToken(tokenAddress).totalSupply()
-            );
-        uint256 mintAmt = releaseAmt.mul(pool.allocPoint).div(totalAllocPoint);
-        IBStableToken(tokenAddress).mint(address(this), mintAmt);
-        uint256 lpSupply = IBEP20(pool.poolAddress).balanceOf(address(this));
-        if (lpSupply > 0) {
-            uint256 reward = mintAmt.mul(pool.shareRewardRate).div(10**18);
-            pool.accTokenPerShare = pool.accTokenPerShare.add(
-                reward.mul(10**18).div(lpSupply)
-            );
-        }
+        IBStableToken(tokenAddress).mint(
+            address(walletSwap),
+            rewardSwap.sub(1)
+        );
+        pool.accTokenPerShare = pool.accTokenPerShare.add(
+            rewardShare.mul(10**18).div(lpSupply)
+        );
         pool.lastUpdateTime = block.timestamp;
     }
 
@@ -1447,18 +1589,17 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
                 );
             if (pending > 0) {
                 uint256 tokenBal =
-                    IBEP20(tokenAddress)
-                        .balanceOf(address(this))
-                        .mul(pool.shareRewardRate)
-                        .div(10**18);
+                    IBEP20(tokenAddress).balanceOf(address(walletShare));
                 if (tokenBal >= pending) {
                     userInfo[_pid][msg.sender].farmingReward = userInfo[_pid][
                         msg.sender
                     ]
                         .farmingReward
                         .add(pending);
-                    TransferHelper.safeTransfer(
+                    walletShare.approveTokenToProxy(tokenAddress, pending);
+                    TransferHelper.safeTransferFrom(
                         tokenAddress,
+                        address(walletShare),
                         msg.sender,
                         pending
                     );
@@ -1468,8 +1609,10 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
                     ]
                         .farmingReward
                         .add(tokenBal);
-                    TransferHelper.safeTransfer(
+                    walletShare.approveTokenToProxy(tokenAddress, tokenBal);
+                    TransferHelper.safeTransferFrom(
                         tokenAddress,
+                        address(walletShare),
                         msg.sender,
                         tokenBal
                     );
@@ -1477,12 +1620,17 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             }
         }
         if (_amount > 0) {
+            uint256 lpBal =
+                IBEP20(pool.poolAddress).balanceOf(address(walletLPStaking));
             TransferHelper.safeTransferFrom(
                 pool.poolAddress,
                 msg.sender,
-                address(this),
+                address(walletLPStaking),
                 _amount
             );
+            _amount = IBEP20(pool.poolAddress)
+                .balanceOf(address(walletLPStaking))
+                .sub(lpBal);
             user.amount = user.amount.add(_amount);
         }
         user.rewardDebt = user.amount.mul(pool.accTokenPerShare).div(10**18);
@@ -1500,30 +1648,41 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
             );
         if (pending > 0) {
             uint256 tokenBal =
-                IBEP20(tokenAddress)
-                    .balanceOf(address(this))
-                    .mul(pool.shareRewardRate)
-                    .div(10**18);
+                IBEP20(tokenAddress).balanceOf(address(walletShare));
             if (tokenBal >= pending) {
                 userInfo[_pid][msg.sender].farmingReward = userInfo[_pid][
                     msg.sender
                 ]
                     .farmingReward
                     .add(pending);
-                TransferHelper.safeTransfer(tokenAddress, msg.sender, pending);
+                walletShare.approveTokenToProxy(tokenAddress, pending);
+                TransferHelper.safeTransferFrom(
+                    tokenAddress,
+                    address(walletShare),
+                    msg.sender,
+                    pending
+                );
             } else {
                 userInfo[_pid][msg.sender].farmingReward = userInfo[_pid][
                     msg.sender
                 ]
                     .farmingReward
                     .add(tokenBal);
-                TransferHelper.safeTransfer(tokenAddress, msg.sender, tokenBal);
+                walletShare.approveTokenToProxy(tokenAddress, tokenBal);
+                TransferHelper.safeTransferFrom(
+                    tokenAddress,
+                    address(walletShare),
+                    msg.sender,
+                    tokenBal
+                );
             }
         }
         if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
-            TransferHelper.safeTransfer(
+            walletLPStaking.approveTokenToProxy(pool.poolAddress, _amount);
+            TransferHelper.safeTransferFrom(
                 pool.poolAddress,
+                address(walletLPStaking),
                 address(msg.sender),
                 _amount
             );
@@ -1532,14 +1691,16 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
-    function emergencyWithdraw(uint256 _pid) external noOpenMigration {
+    function emergencyWithdraw(uint256 _pid) external {
         PoolInfo storage pool = pools[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         uint256 amount = user.amount;
         user.amount = 0;
         user.rewardDebt = 0;
-        TransferHelper.safeTransfer(
+        walletLPStaking.approveTokenToProxy(pool.poolAddress, amount);
+        TransferHelper.safeTransferFrom(
             pool.poolAddress,
+            address(walletLPStaking),
             address(msg.sender),
             amount
         );
@@ -1579,7 +1740,7 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         uint256 _pid,
         uint256 shareRate,
         uint256 swapRate
-    ) external {
+    ) external onlyOwner {
         require(
             shareRate.add(swapRate) <= 1_000_000_000_000_000_000,
             "sum rate lower then 100%"
@@ -1588,7 +1749,10 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         pools[_pid].swapRewardRate = swapRate;
     }
 
-    function setPoolCoins(uint256 _pid, address[] calldata _coins) external {
+    function setPoolCoins(uint256 _pid, address[] calldata _coins)
+        external
+        onlyOwner
+    {
         pools[_pid].coins = _coins;
     }
 
@@ -1602,7 +1766,7 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         pools[_pid].allocPoint = _allocPoint;
     }
 
-    function migratePoolInfo(IBStableProxy from) private {
+    function migratePoolInfo(IBStableProxy from) internal {
         address _poolAddress;
         address[] memory _coins;
         uint256[] memory _data;
@@ -1646,15 +1810,35 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         require(from.isMigrationOpen(), "from's migration not open.");
         require(migrateFrom == address(0), "migration only once.");
         migratePoolInfo(from);
-        tokenAddress = from.getTokenAddress();
-        uint256 tokenBal = IBEP20(tokenAddress).balanceOf(_from);
-        TransferHelper.safeTransferFrom(
-            tokenAddress,
-            _from,
-            address(this),
-            tokenBal
-        );
+        // tokenAddress = from.getTokenAddress();
+        // uint256 tokenBal = IBEP20(tokenAddress).balanceOf(_from);
+        // TransferHelper.safeTransferFrom(
+        //     tokenAddress,
+        //     _from,
+        //     address(this),
+        //     tokenBal
+        // );
 
         migrateFrom = _from;
+    }
+
+    function setDevAddress(address nDevAddress) public onlyOwner {
+        devAddress = nDevAddress;
+    }
+
+    function setAmcAddress(address nAmcAddress) public onlyOwner {
+        amcAddress = nAmcAddress;
+    }
+
+    function setAllocPoints(
+        uint256 _devPoints,
+        uint256 _amcPoints,
+        uint256 _communityPoints,
+        uint256 _totalPoints
+    ) public onlyOwner {
+        devPoints = _devPoints;
+        amcPoints = _amcPoints;
+        communityPoints = _communityPoints;
+        mintTotalPoints = _totalPoints;
     }
 }

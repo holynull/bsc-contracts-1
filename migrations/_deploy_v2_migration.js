@@ -30,9 +30,7 @@ module.exports = async function (deployer, network, accounts) {
     } else if (deployer.network_id == 1) { // main net
     } else if (deployer.network_id == 42) { // kovan
     } else if (deployer.network_id == 56) { // bsc main net
-    } else if (deployer.network_id == 5777) { //dev
-
-
+    } else if (deployer.network_id == 5777 || deployer.network_id == 97) { //dev or bsc_test
         let daiAddress;
         let busdAddress;
         let usdtAddress;
@@ -43,45 +41,45 @@ module.exports = async function (deployer, network, accounts) {
         let p2Address;
         deployer.then(() => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
-            return StableCoin.new("bowDAI for BStable test", "bstableDAI", totalSupply);
+            return StableCoin.new("tDAI for BStable test", "tDAI", totalSupply);
         }).then(dai => {
             daiAddress = dai.address;
             let totalSupply = web3.utils.toWei('100000000', 'ether');
-            return StableCoin.new("bstableHUSD for BStable test", "bstableHUSD", totalSupply);
+            return StableCoin.new("tUSD for BStable test", "tUSD", totalSupply);
         }).then(busd => {
             busdAddress = busd.address;
             let totalSupply = web3.utils.toWei('100000000', 'ether');
-            return StableCoin.new("bstableUSDT for BStable test", "bstableUSDT", totalSupply);
+            return StableCoin.new("tUSDT for BStable test", "tUSDT", totalSupply);
         }).then(usdt => {
             usdtAddress = usdt.address;
             let stableCoins = [daiAddress, busdAddress, usdtAddress];
             let A = 200;
-            let fee = web3.utils.toWei('0.001', 'ether');
-            let adminFee = web3.utils.toWei('0.5', 'ether');
-            return BStablePool.new("BStable Pool (bstableDAI/bstableHUSD/bstableUSDT) for test", "BSLP-01", stableCoins, A, fee, adminFee, owner);
+            let fee = '10000000';
+            let adminFee = '5000000000';
+            return BStablePool.new("BStable Pool (tDAI/tUSD/tUSDT) for test", "BSLP-01", stableCoins, A, fee, adminFee, owner);
         }).then(pool => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
             p1Address = pool.address;
-            return StableCoin.new("BTCB for BStable test", "HBTC", totalSupply);
+            return StableCoin.new("aBTC for BStable test", "aBTC", totalSupply);
         }).then(btcb => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
             btcbAddress = btcb.address;
-            return StableCoin.new("renBTC for BStable test", "renBTC", totalSupply);
+            return StableCoin.new("bBTC for BStable test", "bBTC", totalSupply);
         }).then(renBtc => {
             let totalSupply = web3.utils.toWei('100000000', 'ether');
             renBtcAddress = renBtc.address;
-            return StableCoin.new("anyBTC for BStable test", "anyBTC", totalSupply)
+            return StableCoin.new("cBTC for BStable test", "cBTC", totalSupply)
         }).then(anyBtc => {
             anyBtcAddress = anyBtc.address;
             let stableCoins = [btcbAddress, renBtcAddress, anyBtcAddress];
             let A = 200;
-            let fee = web3.utils.toWei('0.001', 'ether');
-            let adminFee = web3.utils.toWei('0.5', 'ether');
-            return BStablePool.new("BStable Pool (BTCB/renBTC/anyBTC) for test", "BSLP-02", stableCoins, A, fee, adminFee, owner);
+            let fee = '10000000';
+            let adminFee = '5000000000';
+            return BStablePool.new("BStable Pool (aBTC/bBTC/cBTC) for test", "BSLP-02", stableCoins, A, fee, adminFee, owner);
         }).then(async pool => {
             p2Address = pool.address;
             let latestBlock = await web3.eth.getBlock('latest');
-            let tokenPerBlock = web3.utils.toWei('20', 'ether');
+            let tokenPerBlock = web3.utils.toWei('1', 'ether');
             let startBlock = latestBlock.number + 10;
             let bonusEndBlock = startBlock + 28800; // one day, 1 block/3 sec
             let proxy = await BStableProxyV2.new(dev, tokenPerBlock, startBlock, bonusEndBlock, owner);

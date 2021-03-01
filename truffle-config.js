@@ -108,7 +108,7 @@ module.exports = {
             chain_id: 56,
         },
         bsc_test: {
-            provider: () => new HDWalletProvider(mnemonic, "https://data-seed-prebsc-1-s1.binance.org:8545/"),
+            provider: () => new HDWalletProvider(mnemonic, "https://data-seed-prebsc-1-s2.binance.org:8545/"),
             network_id: 97,
             chain_id: 97,
             // gas: 3000000,
