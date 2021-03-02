@@ -5,7 +5,7 @@ pragma solidity ^0.6.0;
 import "./BEP20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// SushiToken with Governance.
+// BSTToken with Governance.
 contract BStableTokenV2 is BEP20("BStable Token", "BST"), Ownable {
 
     constructor() public {
@@ -122,13 +122,13 @@ contract BStableTokenV2 is BEP20("BStable Token", "BST"), Ownable {
         address signatory = ecrecover(digest, v, r, s);
         require(
             signatory != address(0),
-            "SUSHI::delegateBySig: invalid signature"
+            "BST::delegateBySig: invalid signature"
         );
         require(
             nonce == nonces[signatory]++,
-            "SUSHI::delegateBySig: invalid nonce"
+            "BST::delegateBySig: invalid nonce"
         );
-        require(now <= expiry, "SUSHI::delegateBySig: signature expired");
+        require(now <= expiry, "BST::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
@@ -157,7 +157,7 @@ contract BStableTokenV2 is BEP20("BStable Token", "BST"), Ownable {
     {
         require(
             blockNumber < block.number,
-            "SUSHI::getPriorVotes: not yet determined"
+            "BST::getPriorVotes: not yet determined"
         );
 
         uint32 nCheckpoints = numCheckpoints[account];
@@ -193,7 +193,7 @@ contract BStableTokenV2 is BEP20("BStable Token", "BST"), Ownable {
 
     function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SUSHIs (not scaled);
+        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying BSTs (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -240,7 +240,7 @@ contract BStableTokenV2 is BEP20("BStable Token", "BST"), Ownable {
         uint32 blockNumber =
             safe32(
                 block.number,
-                "SUSHI::_writeCheckpoint: block number exceeds 32 bits"
+                "BST::_writeCheckpoint: block number exceeds 32 bits"
             );
 
         if (
