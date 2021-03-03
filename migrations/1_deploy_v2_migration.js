@@ -23,6 +23,9 @@ module.exports = async function (deployer, network, accounts) {
     if (deployer.network.indexOf('skipMigrations') > -1) { // skip migration
         return;
     }
+    if (deployer.network.indexOf('_test') > -1) { // skip migration
+        return;
+    }
     if (deployer.network.indexOf('kovan_oracle') > -1) { // skip migration
         return;
     }
