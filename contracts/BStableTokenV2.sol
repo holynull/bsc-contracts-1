@@ -11,11 +11,23 @@ contract BStableTokenV2 is
     BEP20Burnable,
     Ownable
 {
-    address minter;
+    address public minter;
 
-    constructor(address owner, address minter_) public {
+    address public amc;
+
+    uint256 public INITIAL_SUPPLY = 12_000_000 ether;
+
+    constructor(
+        address owner,
+        address minter_,
+        address amc_
+    ) public {
         transferOwnership(owner);
         minter = minter_;
+        amc = amc_;
+        if (amc != address(0)) {
+            _mint(amc, INITIAL_SUPPLY);
+        }
     }
 
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
@@ -276,5 +288,4 @@ contract BStableTokenV2 is
         }
         return chainId;
     }
-    
 }

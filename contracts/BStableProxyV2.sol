@@ -41,6 +41,9 @@ contract BStableProxyV2 is Ownable {
     uint256 public totalAllocPoint = 0;
     // The block number when BST mining starts.
     uint256 public startBlock;
+
+    address public amc = address(0);
+
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(
@@ -56,7 +59,7 @@ contract BStableProxyV2 is Ownable {
         uint256 _bonusEndBlock,
         address ownerAddress
     ) public {
-        token = new BStableTokenV2(ownerAddress, address(this));
+        token = new BStableTokenV2(ownerAddress, address(this), amc);
         devaddr = _devaddr;
         tokenPerBlock = _tokenPerBlock;
         bonusEndBlock = _bonusEndBlock;

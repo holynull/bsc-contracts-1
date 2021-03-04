@@ -1,117 +1,146 @@
 pragma solidity ^0.6.0;
 
-import "./BEP20.sol";
-import "./interfaces/IBEP20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./lib/TransferHelper.sol";
+import "./interfaces/IBEP20.sol";
+import "./interfaces/IBEP20Burnable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./InvestorPassbook.sol";
 
-contract AssetManagementCenter is BEP20, Ownable, ReentrancyGuard {
+contract AssetManagementCenter is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
-    uint256 DAY = 86400;
-
-    struct Asset {
-        address assetAddress;
-        uint256 releaseTime;
-        address claimer;
-        uint256 epochTime;
+    struct InvestorInfo {
+        address investorAddress;
+        uint256 weight;
+        address passbookAddress;
+        uint256 staTime;
+        uint256 endTime;
     }
 
-    mapping(address => Asset) locks;
+    mapping(address => InvestorInfo) public infos;
 
-    constructor(address ownerAddress)
-        public
-        BEP20("BOW Asset Management Center", "BAMC-V1")
-    {
-        transferOwnership(ownerAddress);
+    address[] public investorAddresses;
+
+    address public tokenAddress;
+
+    uint256 public totalWeight;
+
+    bool public locked = false;
+
+    constructor(address owner_) public {
+        transferOwnership(owner_);
     }
 
-    function addAsset(
-        address assetAddress,
-        uint256 epochTime,
-        uint256 lockDaysFromNow
+    function addInvestorInfo(
+        address investorAddress_,
+        uint256 weight_,
+        uint256 staTime_,
+        uint256 endTime_
     ) public onlyOwner {
-        require(locks[assetAddress].assetAddress == address(0), "asset exist");
-        locks[assetAddress].assetAddress = assetAddress;
-        if (epochTime < block.timestamp) {
-            epochTime = block.timestamp;
-        }
-        locks[assetAddress].epochTime = epochTime;
-        locks[assetAddress].releaseTime = epochTime.add(
-            lockDaysFromNow.mul(DAY)
-        );
-        locks[assetAddress].claimer = msg.sender;
-    }
-
-    function setClaimer(address assetAddress, address nClaimer)
-        public
-        onlyOwner
-    {
         require(
-            locks[assetAddress].assetAddress != address(0),
-            "asset no exist"
+            investorAddress_ != address(0),
+            "AMC:addInvestorInfo:investor is address(0)"
         );
-        locks[assetAddress].claimer = nClaimer;
+        require(!locked, "AMC:addInvestorInfo:amc is locked");
+        InvestorInfo memory info =
+            InvestorInfo({
+                investorAddress: investorAddress_,
+                weight: weight_,
+                staTime: staTime_,
+                endTime: endTime_,
+                passbookAddress: address(0)
+            });
+        infos[investorAddress_] = info;
+        investorAddresses.push(investorAddress_);
+        totalWeight = totalWeight.add(weight_);
     }
 
-    function getLock(address assetAddress)
+    function setInvestorInfo(
+        address investorAddress_,
+        uint256 weight_,
+        uint256 staTime_,
+        uint256 endTime_
+    ) public onlyOwner {
+        require(
+            investorAddress_ != address(0),
+            "AMC:addInvestorInfo:investor is address(0)"
+        );
+        require(!locked, "AMC:setInvestorInfo:amc is locked");
+        InvestorInfo storage info = infos[investorAddress_];
+        require(
+            info.investorAddress != address(0),
+            "AMC:setInvestorInfo:investor not exists."
+        );
+        totalWeight = totalWeight.sub(info.weight);
+        info.weight = weight_;
+        totalWeight = totalWeight.add(weight_);
+        info.staTime = staTime_;
+        info.endTime = endTime_;
+    }
+
+    function distributeAsset() public onlyOwner {
+        require(!locked, "AMC:distributeAsset:amc is locked");
+        InvestorPassbook passbook;
+        for (uint256 i = 0; i < investorAddresses.length; i++) {
+            InvestorInfo storage info = infos[investorAddresses[i]];
+            passbook = new InvestorPassbook(
+                investorAddresses[i],
+                info.staTime,
+                info.endTime,
+                tokenAddress
+            );
+            info.passbookAddress = address(passbook);
+            uint256 amt =
+                IBEP20(tokenAddress)
+                    .balanceOf(address(this))
+                    .mul(info.weight)
+                    .div(totalWeight);
+            totalWeight = totalWeight.sub(info.weight);
+            TransferHelper.safeTransfer(
+                tokenAddress,
+                info.passbookAddress,
+                amt
+            );
+        }
+        locked = true;
+    }
+
+    function burnTokens() public onlyOwner {
+        require(!locked, "AMC:burnTokens:amc is locked");
+        uint256 balance = IBEP20(tokenAddress).balanceOf(address(this));
+        IBEP20Burnable(tokenAddress).burn(balance);
+    }
+
+    function getWeights() public view returns (uint256[] memory) {
+        uint256[] memory weights;
+        for (uint256 i = 0; i < investorAddresses.length; i++) {
+            InvestorInfo storage info = infos[investorAddresses[i]];
+            weights[i] = info.weight;
+        }
+        return weights;
+    }
+
+    function getInvestorInfo(address investorAddress_)
         public
         view
         returns (
-            bool isLocked,
-            address _assetAddress,
-            uint256 _releaseTime,
-            address _claimer,
-            uint256 _balance,
-            uint256 _epochTime
+            uint256 staTime_,
+            uint256 endTime_,
+            uint256 weight_,
+            address passbook_
         )
     {
-        uint256 bal = IBEP20(assetAddress).balanceOf(address(this));
-        return (
-            locks[assetAddress].releaseTime >= block.timestamp &&
-                locks[assetAddress].epochTime <= block.timestamp,
-            locks[assetAddress].assetAddress,
-            locks[assetAddress].releaseTime,
-            locks[assetAddress].claimer,
-            bal,
-            locks[assetAddress].epochTime
-        );
+        InvestorInfo storage info = infos[investorAddress_];
+        investorAddress_ = info.investorAddress;
+        staTime_ = info.staTime;
+        endTime_ = info.endTime;
+        weight_ = info.weight;
+        passbook_ = info.passbookAddress;
     }
 
-    function claim(address assetAddress, uint256 amt) public nonReentrant {
-        require(
-            locks[assetAddress].assetAddress != address(0),
-            "asset lock no exist"
-        );
-        require(
-            locks[assetAddress].claimer == msg.sender,
-            "you are not claimer"
-        );
-        require(
-            locks[assetAddress].releaseTime < block.timestamp ||
-                locks[assetAddress].epochTime > block.timestamp,
-            "within a lock-in period "
-        );
-        uint256 bal = IBEP20(assetAddress).balanceOf(address(this));
-        require(bal >= amt, "no enough balance");
-        TransferHelper.safeTransfer(assetAddress, msg.sender, amt);
-    }
-
-    function extendReleaseTime(address assetAddress, uint256 extendDays)
-        public
-    {
-        require(
-            locks[assetAddress].assetAddress != address(0),
-            "asset lock no exist"
-        );
-        require(
-            locks[assetAddress].claimer == msg.sender,
-            "you are not claimer"
-        );
-        locks[assetAddress].releaseTime = locks[assetAddress].releaseTime.add(
-            extendDays.mul(DAY)
-        );
+    function setTokenAddress(address tokenAddress_) public onlyOwner {
+        tokenAddress = tokenAddress_;
     }
 }
