@@ -56,7 +56,7 @@ contract BStableProxyV2 is Ownable {
         uint256 _bonusEndBlock,
         address ownerAddress
     ) public {
-        token = new BStableTokenV2();
+        token = new BStableTokenV2(ownerAddress, address(this));
         devaddr = _devaddr;
         tokenPerBlock = _tokenPerBlock;
         bonusEndBlock = _bonusEndBlock;
