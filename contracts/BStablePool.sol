@@ -543,7 +543,7 @@ contract BStablePool is BEP20, Ownable, ReentrancyGuard {
         // self.balances[j] = old_balances[j] - dy - dy_admin_fee
         balances[j] = balances[j].sub(dy).sub(dy_admin_fee);
         TransferHelper.safeTransfer(coins[j], msg.sender, dy);
-        volume = volume.add(dy);
+        volume = volume.add(dx);
         emit TokenExchange(msg.sender, i, dx, j, dy);
     }
 
