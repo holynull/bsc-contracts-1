@@ -29,27 +29,27 @@ contract BStablePool is BEP20, Ownable, ReentrancyGuard {
     uint256 private ADMIN_ACTIONS_DELAY = 3 * 86400;
     uint256 private MIN_RAMP_TIME = 86400;
 
-    address[] coins;
-    uint256[] balances;
-    uint256 fee; // fee * 1e10
-    uint256 admin_fee; // admin_fee * 1e10
+    address[] public coins;
+    uint256[] public balances;
+    uint256 public fee; // fee * 1e10
+    uint256 public admin_fee; // admin_fee * 1e10
 
-    uint256 initial_A;
-    uint256 future_A;
-    uint256 initial_A_time;
-    uint256 future_A_time;
+    uint256 public initial_A;
+    uint256 public future_A;
+    uint256 public initial_A_time;
+    uint256 public future_A_time;
 
-    uint256 admin_actions_deadline;
-    uint256 transfer_ownership_deadline;
-    uint256 future_fee;
-    uint256 future_admin_fee;
-    address future_owner;
+    uint256 public admin_actions_deadline;
+    uint256 public transfer_ownership_deadline;
+    uint256 public future_fee;
+    uint256 public future_admin_fee;
+    address public future_owner;
 
-    bool is_killed;
-    uint256 kill_deadline;
+    bool public is_killed;
+    uint256 public kill_deadline;
     uint256 private KILL_DEADLINE_DT = 2 * 30 * 86400;
 
-    uint256 volume;
+    uint256 public volume;
 
     // Events
     event TokenExchange(
@@ -888,45 +888,5 @@ contract BStablePool is BEP20, Ownable, ReentrancyGuard {
 
     function unkill_me() external onlyOwner {
         is_killed = false;
-    }
-
-    function getCoins() external view returns (address[] memory) {
-        return coins;
-    }
-
-    function getBalances() external view returns (uint256[] memory) {
-        return balances;
-    }
-
-    function getFee() external view returns (uint256) {
-        return fee;
-    }
-
-    function getAdminFee() external view returns (uint256) {
-        return admin_fee;
-    }
-
-    function getInitialA() external view returns (uint256) {
-        return initial_A;
-    }
-
-    function getFutrueA() external view returns (uint256) {
-        return future_A;
-    }
-
-    function getinitialATime() external view returns (uint256) {
-        return initial_A_time;
-    }
-
-    function getFutureATime() external view returns (uint256) {
-        return future_A_time;
-    }
-
-    function getKillDeadline() external view returns (uint256) {
-        return kill_deadline;
-    }
-
-    function getVolume() external view returns (uint256) {
-        return volume;
     }
 }
