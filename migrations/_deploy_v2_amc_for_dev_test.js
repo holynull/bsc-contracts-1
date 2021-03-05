@@ -34,6 +34,8 @@ module.exports = async function (deployer, network, accounts) {
     } else if (deployer.network_id == 5777 || deployer.network_id == 97) { //dev or bsc_test
         await deployer.deploy(AssetManagementCenter, accounts[0]);
         await deployer.deploy(BStableTokenV2, accounts[0], accounts[0], AssetManagementCenter.address);
+        let amc = await AssetManagementCenter.deployed();
+        amc.setTokenAddress(BStableTokenV2.address);
     } else {
 
     }

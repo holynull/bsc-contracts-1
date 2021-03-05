@@ -14,6 +14,7 @@ contract InvestorPassbook is Ownable, ReentrancyGuard {
     uint256 public lastUpdateTime;
     address public tokenAddress;
 
+    // 参数：passbook的所有者，索取代币的开始时间，索取代币的结束时间，代币地址
     constructor(
         address owner_,
         uint256 staTime_,
@@ -27,6 +28,7 @@ contract InvestorPassbook is Ownable, ReentrancyGuard {
         tokenAddress = tokenAddress_;
     }
 
+    // 索取代币。只能有passbook的所有者索取。
     function claim() public onlyOwner nonReentrant {
         require(
             block.timestamp >= staTime,
@@ -38,17 +40,9 @@ contract InvestorPassbook is Ownable, ReentrancyGuard {
                 balance.mul(block.timestamp.sub(lastUpdateTime)).div(
                     endTime.sub(staTime)
                 );
-            TransferHelper.safeTransfer(
-                tokenAddress,
-                msg.sender,
-                amt
-            );
+            TransferHelper.safeTransfer(tokenAddress, msg.sender, amt);
         } else if (block.timestamp > endTime) {
-            TransferHelper.safeTransfer(
-                tokenAddress,
-                msg.sender,
-                balance
-            );
+            TransferHelper.safeTransfer(tokenAddress, msg.sender, balance);
         }
     }
 }

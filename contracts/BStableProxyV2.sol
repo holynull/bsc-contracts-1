@@ -278,24 +278,5 @@ contract BStableProxyV2 is Ownable {
         _amount = userInfo[_pid][user].amount;
         _rewardDebt = userInfo[_pid][user].rewardDebt;
     }
-
-    function getTotalAllocPoint() public view returns (uint256) {
-        return totalAllocPoint;
-    }
-
-    function getDevAddress() public view returns (address) {
-        return devaddr;
-    }
-
-    function getBonusEndBlock() public view returns (uint256) {
-        return bonusEndBlock;
-    }
-
-    function getTokenPerBlock() public view returns (uint256) {
-        return tokenPerBlock;
-    }
-
-    function getStartBlock() public view returns (uint256) {
-        return startBlock;
-    }
+    
 }

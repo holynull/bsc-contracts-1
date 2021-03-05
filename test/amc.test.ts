@@ -35,7 +35,7 @@ contract('Asset Management Center', async accounts => {
     before('Get proxy contract instance', async () => {
         coinInstance = await tokenContract.deployed();
         amcInstance = await amcContract.deployed();
-        amcInstance.setTokenAddress(coinInstance.address);
+        // amcInstance.setTokenAddress(coinInstance.address);
     });
 
 

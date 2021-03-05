@@ -101,8 +101,10 @@ contract('BStable proxy', async accounts => {
             console.log("P2 admin fee 1: " + new BigNumber(p2AdminFee_1).div(denominator).toFormat(4, 1));
             let p2AdminFee_2 = await p1.admin_balances(2);
             console.log("P2 admin fee 2: " + new BigNumber(p2AdminFee_2).div(denominator).toFormat(4, 1));
-            let p1VolumeStr = await p1.getVolume();
-            let p2VolumeStr = await p2.getVolume();
+            let p1VolumeStr = await p1.volume();
+            let p2VolumeStr = await p2.volume(
+
+            );
             let p1Volume = new BigNumber(p1VolumeStr).div(denominator);
             let p2Volume = new BigNumber(p2VolumeStr).div(denominator);
             console.log('Pool1 Volume: ' + p1Volume.toFormat(18, 1));
@@ -113,10 +115,10 @@ contract('BStable proxy', async accounts => {
             let p2TotalSupply = new BigNumber(p2TotalSupplyStr).div(denominator);
             console.log('Pool1 totalSupply: ' + p1TotalSupply.toFormat(18, 1));
             console.log('Pool2 totalSupply: ' + p2TotalSupply.toFormat(18, 1));
-            let p1FeeStr = await p1.getFee();
-            let p2FeeStr = await p2.getFee();
-            let p1AdminFeeStr = await p1.getAdminFee();
-            let p2AdminFeeStr = await p2.getAdminFee();
+            let p1FeeStr = await p1.fee();
+            let p2FeeStr = await p2.fee();
+            let p1AdminFeeStr = await p1.admin_fee();
+            let p2AdminFeeStr = await p2.admin_fee();
             let p1Fee = new BigNumber(p1FeeStr).div(new BigNumber(10).exponentiatedBy(10));
             let p2Fee = new BigNumber(p2FeeStr).div(new BigNumber(10).exponentiatedBy(10));
             console.log('Pool1 Fee: ' + p1Fee.toFormat(18, 1));
@@ -133,13 +135,13 @@ contract('BStable proxy', async accounts => {
             let p2APY = new BigNumber(1).plus(p2InterestRate.div(365)).exponentiatedBy(365).minus(1);
             console.log('Pool1 APY: ' + p1APY.toFormat(4, 1));
             console.log('Pool2 APY: ' + p2APY.toFormat(4, 1));
-            let devAddress = await proxyInstance.getDevAddress();
+            let devAddress = await proxyInstance.devaddr();
             console.log('Dev address: ' + devAddress);
-            let startBlock = await proxyInstance.getStartBlock();
+            let startBlock = await proxyInstance.startBlock();
             console.log('Start Block: ' + startBlock);
-            let bonusEndBlock = await proxyInstance.getBonusEndBlock();
+            let bonusEndBlock = await proxyInstance.bonusEndBlock();
             console.log('Bonus End Block: ' + bonusEndBlock);
-            let tokenPerBlockStr = await proxyInstance.getTokenPerBlock();
+            let tokenPerBlockStr = await proxyInstance.tokenPerBlock();
             let tokenPerBlock = new BigNumber(tokenPerBlockStr).div(denominator);
             console.log('Token per Block: ' + tokenPerBlock.toFormat(2, 1));
             console.log('======================================================');
