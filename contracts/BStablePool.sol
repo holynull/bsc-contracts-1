@@ -889,4 +889,8 @@ contract BStablePool is BEP20, Ownable, ReentrancyGuard {
     function unkill_me() external onlyOwner {
         is_killed = false;
     }
+
+    function getCoins() external view returns (address[] memory) {
+        return coins;
+    }
 }

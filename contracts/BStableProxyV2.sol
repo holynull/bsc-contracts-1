@@ -27,12 +27,7 @@ contract BStableProxyV2 is Ownable {
     BStableTokenV2 public token;
     // Dev address.
     address public devaddr;
-    // Block number when bonus BST period ends.
-    uint256 public bonusEndBlock;
-    // BST tokens created per block.
-    uint256 public tokenPerBlock;
-    // Bonus muliplier for early token makers.
-    uint256 public constant BONUS_MULTIPLIER = 10;
+
     // Info of each pool.
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
@@ -41,8 +36,6 @@ contract BStableProxyV2 is Ownable {
     uint256 public totalAllocPoint = 0;
     // The block number when BST mining starts.
     uint256 public startBlock;
-
-    address public amc = address(0);
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -57,12 +50,20 @@ contract BStableProxyV2 is Ownable {
         uint256 _tokenPerBlock,
         uint256 _startBlock,
         uint256 _bonusEndBlock,
+        uint256 _bonusTimes,
+        uint256 _periodMinutes,
         address ownerAddress
     ) public {
-        token = new BStableTokenV2(ownerAddress, address(this), amc);
+        token = new BStableTokenV2(
+            ownerAddress,
+            address(this),
+            _tokenPerBlock,
+            _startBlock,
+            _bonusEndBlock,
+            _bonusTimes,
+            _periodMinutes
+        );
         devaddr = _devaddr;
-        tokenPerBlock = _tokenPerBlock;
-        bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
         transferOwnership(ownerAddress);
     }
@@ -109,24 +110,6 @@ contract BStableProxyV2 is Ownable {
         poolInfo[_pid].allocPoint = _allocPoint;
     }
 
-    // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to)
-        public
-        view
-        returns (uint256)
-    {
-        if (_to <= bonusEndBlock) {
-            return _to.sub(_from).mul(BONUS_MULTIPLIER);
-        } else if (_from >= bonusEndBlock) {
-            return _to.sub(_from);
-        } else {
-            return
-                bonusEndBlock.sub(_from).mul(BONUS_MULTIPLIER).add(
-                    _to.sub(bonusEndBlock)
-                );
-        }
-    }
-
     // View function to see pending BSTs on frontend.
     function pendingReward(uint256 _pid, address _user)
         external
@@ -138,14 +121,12 @@ contract BStableProxyV2 is Ownable {
         uint256 accTokenPerShare = pool.accTokenPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-            uint256 multiplier =
-                getMultiplier(pool.lastRewardBlock, block.number);
             uint256 tokenReward =
-                multiplier.mul(tokenPerBlock).mul(pool.allocPoint).div(
+                token.getMaxMintableAmount().mul(pool.allocPoint).div(
                     totalAllocPoint
                 );
             accTokenPerShare = accTokenPerShare.add(
-                tokenReward.mul(1e12).div(lpSupply)
+                tokenReward.mul(9).mul(1e12).div(lpSupply.mul(10))
             );
         }
         return user.amount.mul(accTokenPerShare).div(1e12).sub(user.rewardDebt);
@@ -170,15 +151,14 @@ contract BStableProxyV2 is Ownable {
             pool.lastRewardBlock = block.number;
             return;
         }
-        uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 tokenReward =
-            multiplier.mul(tokenPerBlock).mul(pool.allocPoint).div(
+            token.getMaxMintableAmount().mul(pool.allocPoint).div(
                 totalAllocPoint
             );
         token.mint(devaddr, tokenReward.div(10));
-        token.mint(address(this), tokenReward);
+        token.mint(address(this), tokenReward.mul(9).div(10));
         pool.accTokenPerShare = pool.accTokenPerShare.add(
-            tokenReward.mul(1e12).div(lpSupply)
+            tokenReward.mul(9).mul(1e12).div(lpSupply.mul(10))
         );
         pool.lastRewardBlock = block.number;
     }
@@ -205,7 +185,7 @@ contract BStableProxyV2 is Ownable {
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    // Withdraw LP tokens from MasterChef.
+    // Withdraw LP tokens.
     function withdraw(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -278,5 +258,5 @@ contract BStableProxyV2 is Ownable {
         _amount = userInfo[_pid][user].amount;
         _rewardDebt = userInfo[_pid][user].rewardDebt;
     }
-    
+
 }

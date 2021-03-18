@@ -13,26 +13,138 @@ contract BStableTokenV2 is
 {
     address public minter;
 
-    address public amc;
+    /**
+     * We design that tokenPerBlock will be reduced every year.
+     * So there is a unvariable tokenPerBlock in one year, we call it a period.
+     * Then it will be reduced a little in next year, and then it goes on like this.
+     */
 
-    uint256 public INITIAL_SUPPLY = 12_000_000 ether;
+    // tokenPerBlock reduction period's index of now
+    uint256 public periodIndex = 0;
+
+    // coefficient of reduction
+    uint256 public RATE_REDUCTION_COEFFICIENT = 1189207115002721024;
+
+    // To mint tokens, block.number must bigger then this value.
+    uint256 public epochBlock = 0;
+
+    // the start block when the reduction start. It will start at when reward start launching.
+    uint256 public startEpochBlock = 0;
+
+    // It produce one block in 3 seconds on BSC, so it will produce 20 blocks in 1 minute.
+    uint256 public BLOCKS_PER_MINUTE = 20;
+
+    // blocks which will be producted in one period.
+    uint256 public blocksPerPeriod = 0;
+
+    // blocks which will be producted in one period.
+    // period which dosn't have bonus.
+    uint256 public blocksPerPeriodOutBonus = 0;
+
+    // BST tokens created per block.
+    uint256 public tokenPerBlock;
+
+    // Bonus muliplier for early token makers.
+    uint256 public bonusTimes = 1;
+
+    // Block number when bonus BST period ends.
+    uint256 public bonusEndBlock;
+
+    uint256 epochSupply = 0;
+
+    event UpdateMiningParameters(uint256 time, uint256 rate, uint256 supply);
 
     constructor(
         address owner,
         address minter_,
-        address amc_
+        uint256 _tokenPerBlock,
+        uint256 _startEpochBlock,
+        uint256 _bonusEndBlock,
+        uint256 _bonusTimes,
+        uint256 _periodMinutes
     ) public {
+        // Aim to make tokenPerBlock reduction simply, we require bonus must be end in 1st year(period).
+        // And bonus must start at _startEpochBlock
+        require(
+            _bonusEndBlock > _startEpochBlock &&
+                _bonusEndBlock <=
+                _startEpochBlock.add(_periodMinutes.mul(BLOCKS_PER_MINUTE)),
+            "Bonus must end in first reduction period."
+        );
         transferOwnership(owner);
         minter = minter_;
-        amc = amc_;
-        if (amc != address(0)) {
-            _mint(amc, INITIAL_SUPPLY);
+        bonusEndBlock = _bonusEndBlock;
+        startEpochBlock = _startEpochBlock;
+        epochBlock = _startEpochBlock;
+        bonusTimes = _bonusTimes;
+        blocksPerPeriodOutBonus = _periodMinutes.mul(BLOCKS_PER_MINUTE);
+        // bonus goes first.
+        tokenPerBlock = _tokenPerBlock.mul(bonusTimes);
+        // bonus goes first.
+        blocksPerPeriod = bonusEndBlock.sub(startEpochBlock);
+    }
+
+    function _updateMiningParameters() internal {
+        uint256 _startEpochBlock = startEpochBlock;
+        startEpochBlock = startEpochBlock.add(blocksPerPeriod);
+        epochSupply = epochSupply.add(tokenPerBlock.mul(blocksPerPeriod));
+        if (periodIndex == 0) {
+            // bonus ends just now
+            tokenPerBlock = tokenPerBlock.div(bonusTimes);
+            blocksPerPeriod = _startEpochBlock.add(blocksPerPeriodOutBonus).sub(
+                bonusEndBlock
+            );
+        } else {
+            tokenPerBlock = tokenPerBlock.mul(10**18).div(
+                RATE_REDUCTION_COEFFICIENT
+            );
+            blocksPerPeriod = blocksPerPeriodOutBonus;
         }
+        periodIndex = periodIndex.add(1);
+        emit UpdateMiningParameters(block.number, tokenPerBlock, epochSupply);
+    }
+
+    function updateMiningParameters() external {
+        require(
+            block.number >= startEpochBlock.add(blocksPerPeriod),
+            "BStableTokenV2:updateMiningParameters: too soon!"
+        );
+        _updateMiningParameters();
+    }
+
+    function _availableSupply() internal view returns (uint256 result) {
+        if (block.number >= startEpochBlock) {
+            result = epochSupply.add(
+                block.number.sub(startEpochBlock).mul(tokenPerBlock)
+            );
+        } else {
+            return 0;
+        }
+    }
+
+    function availableSupply() external view returns (uint256 result) {
+        result = _availableSupply();
+    }
+
+    function getMaxMintableAmount() external view returns (uint256) {
+        return _availableSupply().sub(totalSupply());
     }
 
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
     function mint(address _to, uint256 _amount) public {
-        require(msg.sender == minter, "BStableTokenV2:only minter.");
+        require(
+            block.number >= epochBlock,
+            "BStableTokenV2:mint: not start yet"
+        );
+        require(msg.sender == minter, "BStableTokenV2:mint: only minter.");
+        if (block.number >= startEpochBlock.add(blocksPerPeriod)) {
+            _updateMiningParameters();
+        }
+        uint256 _total_supply = totalSupply().add(_amount);
+        require(
+            _total_supply <= _availableSupply(),
+            "BStableTokenV2:mint: exceeds allowable mint amount"
+        );
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }

@@ -82,10 +82,12 @@ module.exports = async function (deployer, network, accounts) {
         }).then(async pool => {
             p2Address = pool.address;
             let latestBlock = await web3.eth.getBlock('latest');
-            let tokenPerBlock = web3.utils.toWei('1', 'ether');
-            let startBlock = latestBlock.number + 10;
-            let bonusEndBlock = startBlock + 28800; // one day, 1 block/3 sec
-            let proxy = await BStableProxyV2.new(dev, tokenPerBlock, startBlock, bonusEndBlock, owner);
+            let startBlock = latestBlock.number + 280;
+            let periodMinutes = 5; // 20X
+            let tokenPerBlock = web3.utils.toWei('10000', 'ether');
+            let bonusTimes = 10;
+            let bonusEndBlock = startBlock + 50; // one day, 1 block/3 sec
+            let proxy = await BStableProxyV2.new(dev, tokenPerBlock, startBlock, bonusEndBlock, bonusTimes, periodMinutes, owner);
             // await proxy.createWallet();
             let bstAddress = await proxy.getTokenAddress();
             console.log("Token's address: " + bstAddress);
