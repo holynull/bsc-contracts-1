@@ -77,24 +77,4 @@ interface IBStablePool is IBEP20 {
     function transferOwnership(address newOwner) external;
 
     function owner() external view returns (address _owner);
-
-    function getCoins() external view returns (address[] memory);
-
-    function getBalances() external view returns (uint256[] memory);
-
-    function getFee() external view returns (uint256);
-
-    function getAdminFee() external view returns (uint256);
-
-    function getInitialA() external view returns (uint256);
-
-    function getFutrueA() external view returns (uint256);
-
-    function getinitialATime() external view returns (uint256);
-
-    function getFutureATime() external view returns (uint256);
-
-    function getKillDeadline() external view returns (uint256);
-
-    function getVolume() external view returns (uint256);
 }

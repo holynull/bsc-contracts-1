@@ -232,31 +232,4 @@ contract BStableProxyV2 is Ownable {
         return address(token);
     }
 
-    function getPoolInfo(uint256 _pid)
-        public
-        view
-        returns (
-            address _poolAddress,
-            address[] memory _coins,
-            uint256 _allocPoint,
-            uint256 _accTokenPerShare,
-            uint256 _lastRewardBlock
-        )
-    {
-        _poolAddress = address(poolInfo[_pid].lpToken);
-        _coins = IBStablePool(_poolAddress).getCoins();
-        _allocPoint = poolInfo[_pid].allocPoint;
-        _accTokenPerShare = poolInfo[_pid].accTokenPerShare;
-        _lastRewardBlock = poolInfo[_pid].lastRewardBlock;
-    }
-
-    function getUserInfo(uint256 _pid, address user)
-        public
-        view
-        returns (uint256 _amount, uint256 _rewardDebt)
-    {
-        _amount = userInfo[_pid][user].amount;
-        _rewardDebt = userInfo[_pid][user].rewardDebt;
-    }
-
 }

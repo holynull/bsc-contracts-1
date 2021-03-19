@@ -35,17 +35,22 @@ contract('BStable proxy', async accounts => {
 
     before('Get proxy contract instance', async () => {
         proxyInstance = await proxyContract.at(config.proxyAddress);
-        let p1Info = await proxyInstance.getPoolInfo(0);
-        console.log(config.proxyAddress);
-        let p2Info = await proxyInstance.getPoolInfo(1);
+        let p1Info = await proxyInstance.poolInfo(0);
+        let p2Info = await proxyInstance.poolInfo(1);
         p1 = await poolContract.at(p1Info[0]);
         p2 = await poolContract.at(p2Info[0]);
-        dai = await stableCoinContract.at(p1Info[1][0]);
-        busd = await stableCoinContract.at(p1Info[1][1]);
-        usdt = await stableCoinContract.at(p1Info[1][2]);
-        btcb = await stableCoinContract.at(p2Info[1][0]);
-        renBtc = await stableCoinContract.at(p2Info[1][1]);
-        anyBtc = await stableCoinContract.at(p2Info[1][2]);
+        let coin = await p1.coins(0);
+        dai = await stableCoinContract.at(coin);
+        coin = await p1.coins(1);
+        busd = await stableCoinContract.at(coin);
+        coin = await p1.coins(2);
+        usdt = await stableCoinContract.at(coin);
+        coin = await p2.coins(0);
+        btcb = await stableCoinContract.at(coin);
+        coin = await p2.coins(1);
+        renBtc = await stableCoinContract.at(coin);
+        coin = await p2.coins(2);
+        anyBtc = await stableCoinContract.at(coin);
         let tokenAddress = await proxyInstance.getTokenAddress();
         bst = await tokenContract.at(tokenAddress);
         console.log('======================================================');
@@ -103,7 +108,9 @@ contract('BStable proxy', async accounts => {
             let p2AdminFee_2 = await p1.admin_balances(2);
             console.log("P2 admin fee 2: " + new BigNumber(p2AdminFee_2).div(denominator).toFormat(4, 1));
             let p1VolumeStr = await p1.volume();
-            let p2VolumeStr = await p2.volume();
+            let p2VolumeStr = await p2.volume(
+
+            );
             let p1Volume = new BigNumber(p1VolumeStr).div(denominator);
             let p2Volume = new BigNumber(p2VolumeStr).div(denominator);
             console.log('Pool1 Volume: ' + p1Volume.toFormat(18, 1));
@@ -143,8 +150,6 @@ contract('BStable proxy', async accounts => {
             let tokenPerBlockStr = await bst.tokenPerBlock();
             let tokenPerBlock = new BigNumber(tokenPerBlockStr).div(denominator);
             console.log('Token per Block: ' + tokenPerBlock.toFormat(2, 1));
-            let periodIndex = await bst.periodIndex();
-            console.log('Token periodIndex: ' + periodIndex);
             console.log('======================================================');
             console.log('Pool1: ' + p1.address);
             console.log('dai: ' + dai.address);

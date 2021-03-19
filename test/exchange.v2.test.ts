@@ -26,8 +26,8 @@ contract('BStable proxy', async accounts => {
 
     before('Get proxy contract instance', async () => {
         proxyInstance = await proxyContract.at(config.proxyAddress);
-        let p1Info = await proxyInstance.getPoolInfo(0);
-        let p2Info = await proxyInstance.getPoolInfo(1);
+        let p1Info = await proxyInstance.poolInfo(0);
+        let p2Info = await proxyInstance.poolInfo(1);
         let p1 = await poolContract.at(p1Info[0]);
         let p2 = await poolContract.at(p2Info[0]);
         pools.push(p1);
@@ -57,8 +57,9 @@ contract('BStable proxy', async accounts => {
                     randJ = 2;
                 }
                 let randPercent = Math.floor(Math.random() * 10);
-                let poolInfo = await proxyInstance.getPoolInfo(poolIndex);
-                let outCoin = await stableCoinContract.at(poolInfo[1][randJ]);
+                let poolInfo = await proxyInstance.poolInfo(poolIndex);
+                let coin = await pools[poolIndex].coins(randJ);
+                let outCoin = await stableCoinContract.at(coin);
                 let balanceJonPool = await outCoin.balanceOf(poolInfo[0]);
                 // 乘以0.4减少入金过大的情况
                 let amt = new BigNumber(balanceJonPool).multipliedBy(randPercent).div(100);
