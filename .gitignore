@@ -113,3 +113,4 @@ contracts/HelloHECO.sol
 
 migrations/4_heco_test_migration.js
 .vscode
+test/config.ts
