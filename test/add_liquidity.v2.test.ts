@@ -22,9 +22,9 @@ contract('BStable proxy', async accounts => {
 
     before('Get proxy contract instance', async () => {
         proxyInstance = await proxyContract.at(config.proxyAddress);
-        let poolInfo = await proxyInstance.getPoolInfo(0);
+        let poolInfo = await proxyInstance.poolInfo(0);
         poolInstance1 = await poolContract.at(poolInfo[0]);
-        poolInfo = await proxyInstance.getPoolInfo(1);
+        poolInfo = await proxyInstance.poolInfo(1);
         poolInstance2 = await poolContract.at(poolInfo[0]);
     });
 
