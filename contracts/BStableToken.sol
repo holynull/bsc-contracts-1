@@ -4,8 +4,8 @@ import "./BEP20.sol";
 import "./interfaces/IBStableToken.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// BStable DAO Token
-// All data's decimal is 18.
+///@title BStable DAO Token
+///@dev All data's decimal is 18.
 contract BStableToken is IBStableToken, BEP20, Ownable {
     using SafeMath for uint256;
     address minter;

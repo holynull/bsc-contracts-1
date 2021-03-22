@@ -4,8 +4,8 @@ import "./BEP20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./lib/TransferHelper.sol";
 
-// BStable DAO Token Wallet
-// All data's decimal is 18.
+///@title BStable DAO Token Wallet
+///@dev All data's decimal is 18.
 contract BStableTokenWallet is BEP20, Ownable {
     using SafeMath for uint256;
 

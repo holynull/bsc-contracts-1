@@ -22,8 +22,8 @@ contract BStableProxy is IBStableProxy, BEP20, Ownable, ReentrancyGuard {
         uint256 accTokenPerShare;
         uint256 shareRewardRate; //  share reward percent of total release amount. wei
         uint256 swapRewardRate; //  swap reward percent of total release amount.  wei
-        uint256 totalVolAccPoints; // total volume accumulate points. wei, 总交易积分
-        uint256 totalVolReward; // total volume reword. wei 总发放的交易奖励数量
+        uint256 totalVolAccPoints; // total volume accumulate points. wei
+        uint256 totalVolReward; // total volume reword. wei 
         uint256 lastUpdateTime;
     }
     struct UserInfo {

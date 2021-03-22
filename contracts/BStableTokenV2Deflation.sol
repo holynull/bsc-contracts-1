@@ -5,7 +5,7 @@ pragma solidity ^0.6.0;
 import "./BEP20Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// BSTToken with Governance.
+///@title BSTToken with Governance.
 contract BStableTokenV2Deflation is
     BEP20("BStable Token", "BST"),
     BEP20Burnable,
