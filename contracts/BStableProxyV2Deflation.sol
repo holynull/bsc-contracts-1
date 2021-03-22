@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BStableTokenV2.sol";
 
-contract BStableProxyV2 is Ownable {
+contract BStableProxyV2Deflation is Ownable {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
     struct UserInfo {
@@ -231,5 +231,4 @@ contract BStableProxyV2 is Ownable {
     function getTokenAddress() external view returns (address) {
         return address(token);
     }
-
 }

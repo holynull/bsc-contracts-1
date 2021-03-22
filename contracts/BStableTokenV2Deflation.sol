@@ -6,7 +6,7 @@ import "./BEP20Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 // BSTToken with Governance.
-contract BStableTokenV2 is
+contract BStableTokenV2Deflation is
     BEP20("BStable Token", "BST"),
     BEP20Burnable,
     Ownable
