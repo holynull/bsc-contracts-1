@@ -8,9 +8,9 @@ import "./lib/SafeBEP20.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./BStableTokenV2Deflation.sol";
+import "./BStableTokenV2.sol";
 
-contract BStableProxyV2Deflation is Ownable {
+contract BStableProxyV2 is Ownable {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
     struct UserInfo {
@@ -24,10 +24,15 @@ contract BStableProxyV2Deflation is Ownable {
         uint256 lastRewardBlock; // Last block number that BSTs distribution occurs.
         uint256 accTokenPerShare; // Accumulated BSTs per share, times 1e12. See below.
     }
-    BStableTokenV2Deflation public token;
+    BStableTokenV2 public token;
     // Dev address.
     address public devaddr;
-
+    // Block number when bonus BST period ends.
+    uint256 public bonusEndBlock;
+    // BST tokens created per block.
+    uint256 public tokenPerBlock;
+    // Bonus muliplier for early token makers.
+    uint256 public constant BONUS_MULTIPLIER = 2;
     // Info of each pool.
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
@@ -50,20 +55,12 @@ contract BStableProxyV2Deflation is Ownable {
         uint256 _tokenPerBlock,
         uint256 _startBlock,
         uint256 _bonusEndBlock,
-        uint256 _bonusTimes,
-        uint256 _periodMinutes,
         address ownerAddress
     ) public {
-        token = new BStableTokenV2Deflation(
-            ownerAddress,
-            address(this),
-            _tokenPerBlock,
-            _startBlock,
-            _bonusEndBlock,
-            _bonusTimes,
-            _periodMinutes
-        );
+        token = new BStableTokenV2(ownerAddress, address(this));
         devaddr = _devaddr;
+        tokenPerBlock = _tokenPerBlock;
+        bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
         transferOwnership(ownerAddress);
     }
@@ -110,6 +107,24 @@ contract BStableProxyV2Deflation is Ownable {
         poolInfo[_pid].allocPoint = _allocPoint;
     }
 
+    // Return reward multiplier over the given _from to _to block.
+    function getMultiplier(uint256 _from, uint256 _to)
+        public
+        view
+        returns (uint256)
+    {
+        if (_to <= bonusEndBlock) {
+            return _to.sub(_from).mul(BONUS_MULTIPLIER);
+        } else if (_from >= bonusEndBlock) {
+            return _to.sub(_from);
+        } else {
+            return
+                bonusEndBlock.sub(_from).mul(BONUS_MULTIPLIER).add(
+                    _to.sub(bonusEndBlock)
+                );
+        }
+    }
+
     // View function to see pending BSTs on frontend.
     function pendingReward(uint256 _pid, address _user)
         external
@@ -121,12 +136,14 @@ contract BStableProxyV2Deflation is Ownable {
         uint256 accTokenPerShare = pool.accTokenPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
+            uint256 multiplier =
+                getMultiplier(pool.lastRewardBlock, block.number);
             uint256 tokenReward =
-                token.getMaxMintableAmount().mul(pool.allocPoint).div(
+                multiplier.mul(tokenPerBlock).mul(pool.allocPoint).div(
                     totalAllocPoint
                 );
             accTokenPerShare = accTokenPerShare.add(
-                tokenReward.mul(9).mul(1e12).div(lpSupply.mul(10))
+                tokenReward.mul(1e12).div(lpSupply)
             );
         }
         return user.amount.mul(accTokenPerShare).div(1e12).sub(user.rewardDebt);
@@ -151,19 +168,20 @@ contract BStableProxyV2Deflation is Ownable {
             pool.lastRewardBlock = block.number;
             return;
         }
+        uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 tokenReward =
-            token.getMaxMintableAmount().mul(pool.allocPoint).div(
+            multiplier.mul(tokenPerBlock).mul(pool.allocPoint).div(
                 totalAllocPoint
             );
         token.mint(devaddr, tokenReward.div(10));
-        token.mint(address(this), tokenReward.mul(9).div(10));
+        token.mint(address(this), tokenReward);
         pool.accTokenPerShare = pool.accTokenPerShare.add(
-            tokenReward.mul(9).mul(1e12).div(lpSupply.mul(10))
+            tokenReward.mul(1e12).div(lpSupply)
         );
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to MasterChef for BST allocation.
+    // Deposit LP tokens to BStableProxyV2 for BST allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -185,7 +203,7 @@ contract BStableProxyV2Deflation is Ownable {
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    // Withdraw LP tokens.
+    // Withdraw LP tokens from BStableProxyV2.
     function withdraw(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -231,4 +249,5 @@ contract BStableProxyV2Deflation is Ownable {
     function getTokenAddress() external view returns (address) {
         return address(token);
     }
+
 }

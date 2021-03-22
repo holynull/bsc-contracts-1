@@ -82,12 +82,12 @@ module.exports = async function (deployer, network, accounts) {
         }).then(async pool => {
             p2Address = pool.address;
             let latestBlock = await web3.eth.getBlock('latest');
-            let startBlock = latestBlock.number + 280;
-            let periodMinutes = 5; // 20X
-            let tokenPerBlock = web3.utils.toWei('10000', 'ether');
-            let bonusTimes = 10;
-            let bonusEndBlock = startBlock + 50; // one day, 1 block/3 sec
-            let proxy = await BStableProxyV2.new(dev, tokenPerBlock, startBlock, bonusEndBlock, bonusTimes, periodMinutes, owner);
+            let tokenPerBlock = web3.utils.toWei('2', 'ether');
+            let startBlock = latestBlock.number + 60 / 3 * 60 * 24; // farming will start after 24h
+            let bonusPeriod = 60 / 3 * 60 * 24 * 180;// 180 days
+            console.log('Bonus period(blocks): ' + bonusPeriod);
+            let bonusEndBlock = startBlock + bonusPeriod; // one day, 1 block/3 sec
+            let proxy = await BStableProxyV2.new(dev, tokenPerBlock, startBlock, bonusEndBlock, owner);
             // await proxy.createWallet();
             let bstAddress = await proxy.getTokenAddress();
             console.log("Token's address: " + bstAddress);
