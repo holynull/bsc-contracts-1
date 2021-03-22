@@ -1,12 +1,12 @@
 import { expect, assert } from 'chai';
 import {
-    BStableProxyV2Contract,
-    BStableProxyV2Instance,
+    BStableProxyV2DeflationContract,
+    BStableProxyV2DeflationInstance,
     BStablePoolContract,
     BStablePoolInstance,
 } from '../build/types/truffle-types';
 // Load compiled artifacts
-const proxyContract: BStableProxyV2Contract = artifacts.require('BStableProxyV2.sol');
+const proxyContract: BStableProxyV2DeflationContract = artifacts.require('BStableProxyV2Deflation.sol');
 const poolContract: BStablePoolContract = artifacts.require('BStablePool.sol');
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 import { BigNumber } from 'bignumber.js';
@@ -15,7 +15,7 @@ import { config } from './config'
 contract('BStable proxy', async accounts => {
 
 
-    let proxyInstance: BStableProxyV2Instance;
+    let proxyInstance: BStableProxyV2DeflationInstance;
     let poolInstance1: BStablePoolInstance;
     let poolInstance2: BStablePoolInstance;
 

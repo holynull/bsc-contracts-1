@@ -1,18 +1,18 @@
 import { expect, assert } from 'chai';
 import {
-    BStableProxyV2Contract,
-    BStableProxyV2Instance,
+    BStableProxyV2DeflationContract,
+    BStableProxyV2DeflationInstance,
     StableCoinContract,
     StableCoinInstance,
-    BStableTokenV2Contract,
-    BStableTokenV2Instance,
+    BStableTokenV2DeflationContract,
+    BStableTokenV2DeflationInstance,
     BStablePoolContract,
     BStablePoolInstance,
 } from '../build/types/truffle-types';
 // Load compiled artifacts
-const proxyContract: BStableProxyV2Contract = artifacts.require('BStableProxyV2.sol');
+const proxyContract: BStableProxyV2DeflationContract = artifacts.require('BStableProxyV2Deflation.sol');
 const stableCoinContract: StableCoinContract = artifacts.require('StableCoin.sol');
-const tokenContract: BStableTokenV2Contract = artifacts.require('BStableTokenV2.sol');
+const tokenContract: BStableTokenV2DeflationContract = artifacts.require('BStableTokenV2Deflation.sol');
 const poolContract: BStablePoolContract = artifacts.require('BStablePool.sol');
 import { BigNumber } from 'bignumber.js';
 import { config } from './config'
@@ -20,14 +20,14 @@ import { config } from './config'
 contract('BStable proxy', async accounts => {
 
 
-    let proxyInstance: BStableProxyV2Instance;
+    let proxyInstance: BStableProxyV2DeflationInstance;
     let dai: StableCoinInstance;
     let busd: StableCoinInstance;
     let usdt: StableCoinInstance;
     let btcb: StableCoinInstance;
     let renBtc: StableCoinInstance;
     let anyBtc: StableCoinInstance;
-    let bst: BStableTokenV2Instance;
+    let bst: BStableTokenV2DeflationInstance;
     let p1: BStablePoolInstance;
     let p2: BStablePoolInstance;
     let denominator = new BigNumber(10).exponentiatedBy(18);
@@ -145,9 +145,9 @@ contract('BStable proxy', async accounts => {
             console.log('Dev address: ' + devAddress);
             let startBlock = await proxyInstance.startBlock();
             console.log('Start Block: ' + startBlock);
-            let bonusEndBlock = await proxyInstance.bonusEndBlock();
+            let bonusEndBlock = await bst.bonusEndBlock();
             console.log('Bonus End Block: ' + bonusEndBlock);
-            let tokenPerBlockStr = await proxyInstance.tokenPerBlock();
+            let tokenPerBlockStr = await bst.tokenPerBlock();
             let tokenPerBlock = new BigNumber(tokenPerBlockStr).div(denominator);
             console.log('Token per Block: ' + tokenPerBlock.toFormat(2, 1));
             console.log('======================================================');
